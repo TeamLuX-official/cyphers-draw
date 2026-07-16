@@ -1329,6 +1329,17 @@ document.getElementById('coinTeamA').oninput = saveState;
 document.getElementById('coinTeamB').oninput = saveState;
 
 const savedState = lsGet(LS_STATE, null);
+
+// 기본값 변경(그랑플람·앳 던·미등장 기본 비활성)을 기존 저장 설정에도 1회 적용
+// 이후 사용자가 직접 켜면 그 선택은 그대로 유지됨
+if (!lsGet('cyphersDefaultsV2', false)) {
+  if (savedState) {
+    if (Array.isArray(savedState.mapPool)) savedState.mapPool = savedState.mapPool.filter(m => !DEFAULT_OFF.has(m));
+    if (Array.isArray(savedState.monPool)) savedState.monPool = savedState.monPool.filter(m => !DEFAULT_OFF.has(m));
+  }
+  lsSet('cyphersDefaultsV2', true);
+}
+
 if (savedState) {
   if (savedState.batchBo === 3 || savedState.batchBo === 5) setBatchBo(savedState.batchBo, true);
   applySetup(savedState); // buildInputs·대진표 복원 포함
