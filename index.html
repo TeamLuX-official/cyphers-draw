@@ -708,12 +708,15 @@
 // ═══════════ 데이터 ═══════════
 const MAP_ROWS = [
   ['스프링필드', '브리스톨'],
-  ['메트로폴리스', '리버포드']
+  ['메트로폴리스', '리버포드'],
+  ['그랑플람 아시아지부', '리버포드 앳 던']
 ];
 const MON_ROWS = [
   ['미등장', '크라센(미니트루퍼)'],
   ['골드 센티넬', '폭탄 센티넬', '전투 지원병']
 ];
+// 기본 비활성(추첨 풀에서 제외된 상태로 시작) 항목
+const DEFAULT_OFF = new Set(['그랑플람 아시아지부', '리버포드 앳 던', '미등장']);
 
 let logCount = 0;
 let coinTurns = 0;
@@ -881,7 +884,7 @@ function buildChips(containerId, rows) {
     rowEl.className = 'chip-row';
     items.forEach(name => {
       const c = document.createElement('span');
-      c.className = 'chip on';
+      c.className = DEFAULT_OFF.has(name) ? 'chip' : 'chip on';
       c.textContent = name;
       c.onclick = () => {
         const onCount = box.querySelectorAll('.chip.on').length;
