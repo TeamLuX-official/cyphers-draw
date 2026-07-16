@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>사이퍼즈 캐릭터 랜덤 추첨기</title>
+
+  <!-- 파비콘 (LUX C 로고) -->
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="favicon-192.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+  <!-- 링크 공유 미리보기 -->
+  <meta name="description" content="사이퍼즈 전 캐릭터 중복 없는 랜덤 추첨. 추첨 기록과 KST 서버 시계 지원.">
+  <meta name="theme-color" content="#f5c451">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="사이퍼즈 캐릭터 랜덤 추첨기">
+  <meta property="og:description" content="사이퍼즈 전 캐릭터 중복 없는 랜덤 추첨 — Presented by TeamLuX">
+  <meta property="og:url" content="https://teamlux-official.github.io/cyphers-draw/character.html">
+  <meta property="og:image" content="https://teamlux-official.github.io/cyphers-draw/og-character.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="사이퍼즈 캐릭터 랜덤 추첨기">
+  <meta name="twitter:image" content="https://teamlux-official.github.io/cyphers-draw/og-character.png">
+
+  <style>
+    @font-face {
+      font-family: 'DnfTemperedBlade';
+      src: url('https://cdn.df.nexon.com/img/common/font/DNFForgedBlade-Light.otf') format('opentype');
+      font-weight: 300;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'DnfTemperedBlade';
+      src: url('https://cdn.df.nexon.com/img/common/font/DNFForgedBlade-Medium.otf') format('opentype');
+      font-weight: 500;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'DnfTemperedBlade';
+      src: url('https://cdn.df.nexon.com/img/common/font/DNFForgedBlade-Bold.otf') format('opentype');
+      font-weight: 700;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'Pretendard';
+      src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-Regular.woff2') format('woff2');
+      font-weight: 400;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'Pretendard';
+      src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-Medium.woff2') format('woff2');
+      font-weight: 500;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'Pretendard';
+      src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-SemiBold.woff2') format('woff2');
+      font-weight: 600;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'Pretendard';
+      src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-Bold.woff2') format('woff2');
+      font-weight: 700;
+      font-display: swap;
+    }
+
+    :root {
+      --font-title: 'DnfTemperedBlade', 'Pretendard', 'Malgun Gothic', '맑은 고딕', sans-serif;
+      --font-body: 'Pretendard', 'Malgun Gothic', '맑은 고딕', sans-serif;
+      --bg: #14100b;
+      --panel: #1f1811;
+      --panel2: #2a2015;
+      --border: #6b5228;
+      --border-hi: #b98f3e;
+      --gold: #f5c451;
+      --gold-dim: #c9a04a;
+      --text: #e8dcc4;
+      --text-dim: #9c8d6e;
+      --red: #ff6b5e;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html {
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+    }
+    html, body { height: 100%; }
+
+    body {
+      min-height: 100vh;
+      background: var(--bg);
+      background-image: radial-gradient(ellipse at 50% -20%, #2e2312 0%, var(--bg) 60%);
+      font-family: var(--font-body);
+      color: var(--text);
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      word-break: keep-all;
+      overflow-x: hidden;
+    }
+
+    /* 전체 래퍼 */
+    #app {
+      width: 100%;
+      max-width: 560px;
+      padding: 36px 16px 40px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* 헤더 */
+    #header { text-align: center; margin-bottom: 26px; width: 100%; }
+    #header h1 {
+      font-family: var(--font-title);
+      font-weight: 700;
+      font-size: 42px;
+      letter-spacing: 7px;
+      filter: drop-shadow(0 0 16px rgba(245, 181, 58, .35)) drop-shadow(0 2px 2px rgba(0, 0, 0, .6));
+      margin-bottom: 4px;
+    }
+    h1 .t-red {
+      background: linear-gradient(180deg, #ff8a5c 10%, #e0402a 55%, #b02418 95%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    h1 .t-gold {
+      background: linear-gradient(180deg, #ffe792 12%, #f5c451 50%, #e09b2d 92%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    #header .label {
+      font-family: var(--font-title);
+      font-weight: 500;
+      font-size: 15px;
+      letter-spacing: 5px;
+      color: var(--text-dim);
+      margin-bottom: 12px;
+    }
+    #header .subtitle { color: var(--text-dim); font-size: 14px; }
+    #header .subtitle span { color: var(--gold); font-weight: 700; }
+
+    /* 탭 */
+    #tabs { display: flex; gap: 6px; margin-bottom: 22px; }
+    .tab-btn {
+      padding: 9px 24px; border-radius: 6px;
+      cursor: pointer; font-weight: 700; font-size: 14px;
+      background: #0d0a06; border: 1px solid var(--border); color: var(--text-dim);
+      transition: all 0.15s; font-family: inherit;
+      letter-spacing: 1px; white-space: nowrap;
+    }
+    .tab-btn.active { background: #2e2410; border-color: var(--gold); color: var(--gold); }
+
+    /* 패널 */
+    .panel { width: 100%; display: none; }
+    .panel.active { display: block; }
+
+    /* 결과 박스 */
+    #result-box {
+      background: #0d0a06;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 40px 24px;
+      text-align: center;
+      margin-bottom: 20px;
+      min-height: 180px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+    }
+    #result-box .idle-icon { font-size: 40px; margin-bottom: 12px; }
+    #result-box .idle-text { color: var(--text-dim); font-size: 15px; }
+    #result-box .draw-label { font-size: 13px; color: var(--text-dim); margin-bottom: 12px; letter-spacing: 2px; }
+    #result-box .draw-name {
+      font-family: var(--font-title); font-weight: 500;
+      font-size: 40px; color: var(--text); letter-spacing: 2px;
+    }
+    #result-box .result-label { font-size: 13px; color: var(--gold-dim); margin-bottom: 10px; letter-spacing: 2px; }
+    #result-box .result-name {
+      font-family: var(--font-title); font-weight: 700;
+      font-size: 48px; color: var(--gold); letter-spacing: 3px;
+      text-shadow: 0 0 26px rgba(245, 196, 81, .55);
+      animation: pop .35s ease;
+    }
+    #result-box .result-time { font-size: 13px; color: var(--text-dim); margin-top: 12px; }
+    #result-box .done-icon { font-size: 40px; margin-bottom: 12px; }
+    #result-box .done-title { font-family: var(--font-title); font-weight: 700; font-size: 22px; color: var(--gold); }
+    #result-box .done-sub { font-size: 14px; color: var(--text-dim); margin-top: 8px; }
+
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.45} }
+    .animating { animation: blink 0.3s infinite; }
+    @keyframes pop {
+      0% { transform: scale(.85); }
+      60% { transform: scale(1.08); }
+      100% { transform: scale(1); }
+    }
+
+    /* 프로그레스 */
+    #progress-wrap { margin-bottom: 16px; width: 100%; }
+    #progress-header { display: flex; justify-content: space-between; font-size: 13px; color: var(--text-dim); margin-bottom: 8px; }
+    #progress-track { background: #0d0a06; border: 1px solid var(--border); border-radius: 999px; height: 10px; }
+    #progress-bar {
+      height: 8px; margin: 1px; border-radius: 999px;
+      background: linear-gradient(90deg, #cf9c35, #f5c451);
+      box-shadow: 0 0 10px rgba(245,196,81,.35);
+      width: 0%; transition: width 0.5s ease;
+    }
+
+    /* KST 시계 */
+    #clock-wrap { width: 100%; margin-bottom: 16px; }
+    #clock {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      width: 100%;
+      background: #0d0a06;
+      border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px 18px;
+      font-size: 15px; font-weight: 600; color: var(--gold-dim);
+      letter-spacing: 1px; font-variant-numeric: tabular-nums;
+      flex-wrap: wrap;
+    }
+    #clock .clock-label {
+      font-size: 11px; font-weight: 700; color: var(--gold);
+      background: #2e2410; border: 1px solid var(--border);
+      padding: 2px 8px; border-radius: 999px; letter-spacing: 1px;
+      white-space: nowrap;
+    }
+    #clock-time { color: var(--gold); }
+
+    /* 버튼 */
+    #draw-btn {
+      width: 100%; padding: 17px; border-radius: 8px;
+      cursor: pointer; font-size: 18px; font-weight: 800;
+      letter-spacing: 2px; transition: all 0.15s;
+      background: linear-gradient(180deg, #ffe08a, #d5a437);
+      border: 2px solid var(--gold);
+      color: #1a1206;
+      box-shadow: 0 0 24px rgba(245,196,81,.25), 0 4px 12px rgba(0,0,0,.5);
+      font-family: inherit; white-space: nowrap;
+    }
+    #draw-btn:hover:not(:disabled) { filter: brightness(1.08); box-shadow: 0 0 32px rgba(245,196,81,.4); }
+    #draw-btn:active:not(:disabled) { transform: translateY(1px); }
+    #draw-btn:disabled {
+      filter: grayscale(.7) brightness(.55);
+      box-shadow: none; cursor: not-allowed;
+    }
+    #reset-btn, #reset-btn2 {
+      width: 100%; margin-top: 12px; padding: 12px;
+      border-radius: 8px; border: 1px solid #7a3a30;
+      cursor: pointer; background: #2a1410; color: #ff8a7a;
+      font-size: 14px; font-weight: 600; transition: all 0.15s;
+      font-family: inherit; white-space: nowrap;
+    }
+    #reset-btn:hover, #reset-btn2:hover { filter: brightness(1.25); }
+    #reset-btn2 { margin-top: 16px; }
+
+    /* 로그 */
+    #log-empty {
+      text-align: center; padding: 60px 24px; color: var(--text-dim);
+      background: #0d0a06; border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    #log-empty .icon { font-size: 36px; margin-bottom: 12px; }
+    #log-list { display: flex; flex-direction: column; gap: 8px; }
+    .log-item {
+      display: flex; align-items: center; justify-content: space-between;
+      background: linear-gradient(180deg, var(--panel2), var(--panel));
+      border: 1px solid var(--border);
+      border-radius: 8px; padding: 13px 16px;
+    }
+    .log-item.latest { border-color: var(--border-hi); box-shadow: 0 0 14px rgba(245,196,81,.15); }
+    .log-item-left { display: flex; align-items: center; gap: 14px; min-width: 0; }
+    .log-num {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: #0d0a06; border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700; color: var(--text-dim); flex-shrink: 0;
+    }
+    .log-num.latest {
+      background: linear-gradient(180deg, #f7d47a, #cf9c35);
+      border-color: var(--gold); color: #1a1206;
+    }
+    .log-name {
+      font-family: var(--font-title); font-weight: 500;
+      font-size: 18px; color: var(--text); letter-spacing: 1px;
+    }
+    .log-item.latest .log-name { color: var(--gold); }
+    .log-time { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+    .log-badge {
+      font-size: 11px; font-weight: 700; color: var(--gold);
+      background: #2e2410; border: 1px solid var(--border-hi);
+      padding: 3px 10px; border-radius: 999px; white-space: nowrap;
+    }
+
+    /* 푸터 */
+    .footer {
+      text-align: center; margin-top: 24px;
+      font-size: 12px; color: var(--text-dim); letter-spacing: 2px;
+    }
+    .footer b { color: var(--gold-dim); }
+    .footer-mail { margin-top: 5px; letter-spacing: 1px; }
+    .footer-mail a { color: var(--text-dim); text-decoration: none; }
+    .footer-mail a:hover { color: var(--gold); }
+
+    /* 모바일 */
+    @media (max-width: 480px) {
+      #app { padding: 24px 12px 32px; }
+      #header h1 { font-size: 32px; letter-spacing: 4px; }
+      #header .label { font-size: 12px; letter-spacing: 4px; }
+      #result-box { padding: 32px 16px; min-height: 160px; }
+      #result-box .result-name { font-size: 38px; }
+      #result-box .draw-name { font-size: 32px; }
+      #draw-btn { padding: 14px; font-size: 16px; }
+      .tab-btn { padding: 8px 18px; font-size: 13px; }
+      #clock { font-size: 13px; gap: 7px; padding: 9px 12px; }
+      .log-name { font-size: 16px; }
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <div id="header">
+    <h1><span class="t-red">C</span><span class="t-gold">YPHERS</span></h1>
+    <div class="label">캐릭터 랜덤 추첨기</div>
+    <div class="subtitle">총 <span id="total-count"></span>명 · 남은 캐릭터 <span id="remain-count"></span>명</div>
+  </div>
+
+  <div id="tabs">
+    <button class="tab-btn active" onclick="switchTab('main')">🎲 추첨</button>
+    <button class="tab-btn" id="log-tab-btn" onclick="switchTab('log')">📋 기록 (0)</button>
+  </div>
+
+  <!-- 추첨 패널 -->
+  <div class="panel active" id="panel-main">
+    <div id="result-box">
+      <div class="idle-icon">🎲</div>
+      <div class="idle-text">버튼을 눌러 추첨을 시작하세요</div>
+    </div>
+
+    <div id="progress-wrap">
+      <div id="progress-header">
+        <span>진행률</span>
+        <span id="progress-text">0 / 0 (0%)</span>
+      </div>
+      <div id="progress-track">
+        <div id="progress-bar"></div>
+      </div>
+    </div>
+    <!-- KST 시계 -->
+    <div id="clock-wrap">
+      <div id="clock">
+        <span class="clock-label">KST</span>
+        <span id="clock-source" style="font-size:11px;font-weight:700;">동기화 중...</span>
+        <span id="clock-date" style="font-size:13px;">--년 --월 --일</span>
+        <span id="clock-time">--:--:--</span>
+      </div>
+    </div>
+
+    <button id="draw-btn" onclick="draw()">🎲 추첨하기 (1번째)</button>
+    <button id="reset-btn" onclick="resetAll()" style="display:none;">🗑 초기화</button>
+
+    <div class="footer">
+      Presented by <b>TeamLuX</b>
+      <div class="footer-mail"><a href="mailto:lcf2025official@gmail.com">lcf2025official@gmail.com</a></div>
+    </div>
+  </div>
+
+  <!-- 기록 패널 -->
+  <div class="panel" id="panel-log">
+    <div id="log-empty">
+      <div class="icon">📋</div>
+      <div>아직 추첨 기록이 없습니다</div>
+    </div>
+    <div id="log-list"></div>
+    <button id="reset-btn2" onclick="resetAll()" style="display:none;">🗑 전체 기록 초기화</button>
+  </div>
+
+</div>
+<script>
+const ALL_CHARACTERS = [
+  "로라스","휴톤","루이스","타라","트리비아","카인","레나","드렉슬러","도일","토마스",
+  "나이오비","시바","웨슬리","스텔라","앨리셔","클레어","다이무스","이글","마를렌","샬럿",
+  "레이튼","윌라드","미쉘","린","카를로스","빅터","호타루","트릭시","히카르도","까미유",
+  "자네트","피터","레베카","아이작","엘리","브루스","마틴","미아","제레온","드니스",
+  "루시","하랑","티엔","J","벨져","리첼","리사","릭","제키엘","탄야",
+  "캐럴","라이샌더","루드빅","멜빈","디아나","클리브","헬레나","에바","론","레오노르",
+  "시드니","테이","티모시","엘프리데","티샤","카로슈","라이언","파수꾼 A","에밀리","플로리안",
+  "케니스","이사벨","헤나투","숙희","그레타","바스티안","재뉴어리","니콜라스","키아라","베로니카",
+  "주세페","루카","앤지 헌트","엔데카","오데트"
+];
+
+const STORAGE_KEY = "cyphers-draw-log";
+const TOTAL = ALL_CHARACTERS.length;
+let log = [];
+let animating = false;
+let currentTab = "main";
+
+
+// ── 초기화 ───────────────────────────────────────
+function init() {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) log = JSON.parse(stored);
+  } catch {}
+  document.getElementById("total-count").textContent = TOTAL;
+  render();
+}
+function saveLog() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(log)); } catch {}
+}
+
+// ── 날짜 포맷 ─────────────────────────────────────
+function formatDate(iso) {
+  const d = new Date(iso);
+  const pad = n => String(n).padStart(2, "0");
+  return `${d.getFullYear()}.${pad(d.getMonth()+1)}.${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+// ── 남은 캐릭터 ───────────────────────────────────
+function getRemaining() {
+  const drawn = new Set(log.map(e => e.name));
+  return ALL_CHARACTERS.filter(c => !drawn.has(c));
+}
+
+// ── 추첨 ──────────────────────────────────────────
+function draw() {
+  if (animating) return;
+  const remaining = getRemaining();
+  if (remaining.length === 0) return;
+  animating = true;
+  document.getElementById("draw-btn").disabled = true;
+  const box = document.getElementById("result-box");
+  box.innerHTML = `<div class="draw-label">추첨 중...</div><div class="draw-name animating" id="rolling-name"></div>`;
+  let count = 0;
+  const totalFrames = 24;
+  const interval = setInterval(() => {
+    const rnd = remaining[Math.floor(Math.random() * remaining.length)];
+    document.getElementById("rolling-name").textContent = rnd;
+    count++;
+    if (count >= totalFrames) {
+      clearInterval(interval);
+      const pick = remaining[Math.floor(Math.random() * remaining.length)];
+      const entry = { name: pick, time: new Date().toISOString() };
+      log.push(entry);
+      saveLog();
+      animating = false;
+      render();
+      showResult(pick, entry.time);
+    }
+  }, 60);
+}
+
+// ── 결과 표시 ─────────────────────────────────────
+function showResult(name, time) {
+  document.getElementById("result-box").innerHTML = `
+    <div class="result-label">#${log.length} 추첨 결과</div>
+    <div class="result-name">${name}</div>
+    <div class="result-time">${formatDate(time)}</div>
+  `;
+}
+
+// ── 초기화 ────────────────────────────────────────
+function resetAll() {
+  if (!confirm("모든 추첨 기록을 초기화할까요?")) return;
+  log = [];
+  try { localStorage.removeItem(STORAGE_KEY); } catch {}
+  document.getElementById("result-box").innerHTML = `
+    <div class="idle-icon">🎲</div>
+    <div class="idle-text">버튼을 눌러 추첨을 시작하세요</div>
+  `;
+  render();
+}
+
+// ── 탭 전환 ───────────────────────────────────────
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll(".tab-btn").forEach((btn, i) => {
+    btn.classList.toggle("active", (i === 0 && tab === "main") || (i === 1 && tab === "log"));
+  });
+  document.getElementById("panel-main").classList.toggle("active", tab === "main");
+  document.getElementById("panel-log").classList.toggle("active", tab === "log");
+  if (tab === "log") renderLog();
+}
+
+// ── UI 렌더 ───────────────────────────────────────
+function render() {
+  const remaining = getRemaining();
+  const drawn = TOTAL - remaining.length;
+  const pct = Math.round((drawn / TOTAL) * 100);
+  const allDone = remaining.length === 0;
+
+  document.getElementById("remain-count").textContent = remaining.length;
+  document.getElementById("log-tab-btn").textContent = `📋 기록 (${log.length})`;
+  document.getElementById("progress-text").textContent = `${drawn} / ${TOTAL} (${pct}%)`;
+  document.getElementById("progress-bar").style.width = pct + "%";
+
+  const drawBtn = document.getElementById("draw-btn");
+  if (allDone) {
+    drawBtn.disabled = true;
+    drawBtn.textContent = "모든 캐릭터 추첨 완료";
+    document.getElementById("result-box").innerHTML = `
+      <div class="done-icon">🎉</div>
+      <div class="done-title">전체 추첨 완료!</div>
+      <div class="done-sub">${TOTAL}명 모두 추첨되었습니다</div>
+    `;
+  } else {
+    drawBtn.disabled = false;
+    drawBtn.textContent = `🎲 추첨하기 (${log.length + 1}번째)`;
+  }
+
+  document.getElementById("reset-btn").style.display = log.length > 0 ? "block" : "none";
+  document.getElementById("reset-btn2").style.display = log.length > 0 ? "block" : "none";
+  if (currentTab === "log") renderLog();
+}
+
+function renderLog() {
+  const empty = document.getElementById("log-empty");
+  const list = document.getElementById("log-list");
+  if (log.length === 0) {
+    empty.style.display = "block";
+    list.innerHTML = "";
+    return;
+  }
+  empty.style.display = "none";
+  const reversed = [...log].reverse();
+  list.innerHTML = reversed.map((entry, i) => `
+    <div class="log-item ${i === 0 ? 'latest' : ''}">
+      <div class="log-item-left">
+        <div class="log-num ${i === 0 ? 'latest' : ''}">${log.length - i}</div>
+        <div>
+          <div class="log-name">${entry.name}</div>
+          <div class="log-time">${formatDate(entry.time)}</div>
+        </div>
+      </div>
+      ${i === 0 ? '<div class="log-badge">최근</div>' : ''}
+    </div>
+  `).join("");
+}
+
+// ── KST 시계 (worldtimeapi.org 서버 시간) ────────
+let serverOffset = null;
+let usingServer = false;
+
+async function syncServerTime() {
+  const APIS = [
+    async () => {
+      const res = await fetch('https://worldtimeapi.org/api/timezone/Asia/Seoul', { cache: 'no-store' });
+      const data = await res.json();
+      return new Date(data.datetime).getTime();
+    },
+    async () => {
+      const res = await fetch('https://timeapi.io/api/time/current/zone?timeZone=Asia%2FSeoul', { cache: 'no-store' });
+      const data = await res.json();
+      return new Date(data.dateTime).getTime();
+    }
+  ];
+
+  for (const api of APIS) {
+    try {
+      const before = Date.now();
+      const serverMs = await api();
+      const after = Date.now();
+      // 왕복 지연의 절반을 보정
+      serverOffset = serverMs - Math.round((before + after) / 2);
+      usingServer = true;
+      updateClockLabel(true);
+      return;
+    } catch {}
+  }
+  // 모든 API 실패 시 PC 시간
+  serverOffset = 0;
+  usingServer = false;
+  updateClockLabel(false);
+}
+
+function updateClockLabel(isServer) {
+  const el = document.getElementById('clock-source');
+  if (el) {
+    el.textContent = isServer ? '🟢 서버' : '🔴 PC';
+    el.title = isServer ? 'worldtimeapi.org 서버 시간' : '서버 연결 실패 - PC 시간 사용 중';
+  }
+}
+
+function getServerTime() {
+  const now = new Date(Date.now() + (serverOffset ?? 0));
+  return now.toLocaleTimeString('ko-KR', { timeZone: 'Asia/Seoul', hour12: false });
+}
+
+function tickClock() {
+  const el = document.getElementById('clock-time');
+  if (!el) return;
+  if (serverOffset === null) { el.textContent = '동기화 중...'; return; }
+  el.textContent = getServerTime();
+  const now = new Date(Date.now() + (serverOffset ?? 0));
+  const yy = String(now.getFullYear()).slice(2);
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  const dateEl = document.getElementById('clock-date');
+  if (dateEl) dateEl.textContent = yy + '년 ' + mm + '월 ' + dd + '일';
+}
+
+syncServerTime().then(() => tickClock());
+setInterval(tickClock, 1000);
+setInterval(syncServerTime, 60000);
+
+init();
+</script>
+</body>
+</html>
