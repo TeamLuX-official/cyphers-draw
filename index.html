@@ -1,0 +1,1321 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>사이퍼즈 대회 통합 추첨 시스템</title>
+<style>
+  @font-face {
+    font-family: 'DnfTemperedBlade';
+    src: url('https://cdn.df.nexon.com/img/common/font/DNFForgedBlade-Light.otf') format('opentype');
+    font-weight: 300;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'DnfTemperedBlade';
+    src: url('https://cdn.df.nexon.com/img/common/font/DNFForgedBlade-Medium.otf') format('opentype');
+    font-weight: 500;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'DnfTemperedBlade';
+    src: url('https://cdn.df.nexon.com/img/common/font/DNFForgedBlade-Bold.otf') format('opentype');
+    font-weight: 700;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'Pretendard';
+    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-Light.woff2') format('woff2');
+    font-weight: 300;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'Pretendard';
+    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-Regular.woff2') format('woff2');
+    font-weight: 400;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'Pretendard';
+    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-Medium.woff2') format('woff2');
+    font-weight: 500;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'Pretendard';
+    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-SemiBold.woff2') format('woff2');
+    font-weight: 600;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'Pretendard';
+    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-Bold.woff2') format('woff2');
+    font-weight: 700;
+    font-display: swap;
+  }
+  :root {
+    --font-title: 'DnfTemperedBlade', 'Pretendard', 'Malgun Gothic', '맑은 고딕', sans-serif;
+    --font-body: 'Pretendard', 'Malgun Gothic', '맑은 고딕', sans-serif;
+    --bg: #14100b;
+    --panel: #1f1811;
+    --panel2: #2a2015;
+    --border: #6b5228;
+    --border-hi: #b98f3e;
+    --gold: #f5c451;
+    --gold-dim: #c9a04a;
+    --text: #e8dcc4;
+    --text-dim: #9c8d6e;
+    --blue: #4da3ff;
+    --red: #ff6b5e;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html {
+    /* 모바일 브라우저의 자동 글자 확대(font boosting) 차단 — 레이아웃이 화면 밖으로 부푸는 원인 */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  body {
+    background: var(--bg);
+    background-image: radial-gradient(ellipse at 50% -20%, #2e2312 0%, var(--bg) 60%);
+    color: var(--text);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    padding: 24px 16px 48px;
+    word-break: keep-all; /* 한글이 글자 단위로 깨져 줄바꿈되지 않도록 */
+    overflow-x: hidden; /* 페이지 자체는 가로 스크롤 금지 (대진표는 자체 스크롤) */
+  }
+  .wrap { max-width: 1300px; margin: 0 auto; }
+
+  h1 {
+    text-align: center;
+    font-family: var(--font-title);
+    font-weight: 700;
+    font-size: 52px;
+    letter-spacing: 9px;
+    color: var(--gold);
+    filter: drop-shadow(0 0 16px rgba(245, 181, 58, .35)) drop-shadow(0 2px 2px rgba(0, 0, 0, .6));
+    margin-bottom: 6px;
+  }
+  /* 사이퍼즈 로고 참고: 붉은 C + 노란 본문 */
+  h1 .t-red {
+    background: linear-gradient(180deg, #ff8a5c 10%, #e0402a 55%, #b02418 95%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  h1 .t-gold {
+    background: linear-gradient(180deg, #ffe792 12%, #f5c451 50%, #e09b2d 92%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .subtitle {
+    text-align: center;
+    font-family: var(--font-title);
+    font-weight: 500;
+    color: var(--text-dim);
+    font-size: 18px;
+    letter-spacing: 6px;
+    margin-bottom: 32px;
+  }
+
+  /* ── 카드 공통 ── */
+  .cards {
+    display: grid;
+    /* minmax(0,1fr): 카드 내용물 최소폭이 화면을 밀어내지 않도록 */
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
+  }
+  @media (max-width: 860px) { .cards { grid-template-columns: minmax(0, 1fr); } }
+
+  .card {
+    background: linear-gradient(180deg, var(--panel2), var(--panel));
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 22px 20px 20px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.05);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+  }
+  .card h2 {
+    font-family: var(--font-title);
+    font-weight: 500;
+    font-size: 19px;
+    color: var(--gold-dim);
+    letter-spacing: 2px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 10px;
+  }
+  /* 추첨 버튼은 카드 맨 아래에 정렬 (카드 높이가 달라도 줄 맞춤) */
+  .card > :last-child { margin-top: auto; }
+
+  .result {
+    height: 88px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #0d0a06;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-family: var(--font-title);
+    font-weight: 500;
+    font-size: 31px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    overflow: hidden;
+  }
+  .result.rolling { color: var(--text); }
+  .result.done {
+    color: var(--gold);
+    border-color: var(--border-hi);
+    text-shadow: 0 0 14px rgba(245, 196, 81, .5);
+    animation: pop .35s ease;
+  }
+  @keyframes pop {
+    0% { transform: scale(.85); }
+    60% { transform: scale(1.08); }
+    100% { transform: scale(1); }
+  }
+
+  /* ── 코인 ── */
+  .coin-stage { flex: 1; min-height: 96px; display: flex; align-items: center; justify-content: center; perspective: 600px; }
+  .coin {
+    width: 84px; height: 84px;
+    position: relative;
+    transform-style: preserve-3d;
+  }
+  .coin .face {
+    position: absolute; inset: 0;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 19px; font-weight: bold; letter-spacing: 1px;
+    backface-visibility: hidden;
+    border: 3px solid;
+  }
+  .coin .front {
+    background: radial-gradient(circle at 35% 30%, #6fb4ff, #1c5aa8);
+    border-color: #8cc4ff; color: #fff;
+  }
+  .coin .back {
+    background: radial-gradient(circle at 35% 30%, #ff9a8c, #a83224);
+    border-color: #ffb0a5; color: #fff;
+    transform: rotateY(180deg);
+  }
+  .coin-teams { display: flex; gap: 6px; }
+  .coin-teams input {
+    font-family: inherit;
+    flex: 1; min-width: 0;
+    padding: 10px 12px;
+    font-size: 15px;
+    background: #0d0a06;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    outline: none;
+    text-align: center;
+  }
+  .coin-teams input:focus { border-color: var(--gold); }
+  .coin-sides { display: flex; flex-direction: column; gap: 5px; }
+  .side-row {
+    display: flex; align-items: center; justify-content: space-between;
+    background: #0d0a06;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 8px 12px 8px 10px;
+    font-size: 13px;
+  }
+  .side-row.company { border-left: 3px solid var(--blue); }
+  .side-row.union { border-left: 3px solid var(--red); }
+  .side-row .side-name { font-size: 13px; letter-spacing: 1px; }
+  .side-row.company .side-name { color: var(--blue); }
+  .side-row.union .side-name { color: var(--red); }
+  .side-row b {
+    font-family: var(--font-title);
+    font-weight: 500;
+    font-size: 18px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+  }
+  .side-row b.done { animation: pop .3s ease; }
+  .side-row.company b.done { color: var(--blue); text-shadow: 0 0 10px rgba(77,163,255,.45); }
+  .side-row.union b.done { color: var(--red); text-shadow: 0 0 10px rgba(255,107,94,.45); }
+
+  /* ── BO3/BO5 세트 결과 ── */
+  .series { display: flex; flex-direction: column; gap: 5px; }
+  .series:empty { display: none; }
+  .set-row {
+    display: flex; align-items: center; justify-content: space-between;
+    background: #0d0a06;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--border-hi);
+    border-radius: 4px;
+    padding: 8px 12px 8px 10px;
+    font-size: 13px;
+  }
+  .set-row .set-label {
+    color: var(--gold-dim);
+    font-size: 12px;
+    letter-spacing: 1px;
+    background: #2e2410;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 3px 9px;
+  }
+  .set-row .set-map {
+    font-family: var(--font-title);
+    font-weight: 500;
+    font-size: 18px;
+    color: var(--text);
+    letter-spacing: 1px;
+  }
+  .set-row .set-map.done {
+    color: var(--gold);
+    text-shadow: 0 0 10px rgba(245,196,81,.45);
+    animation: pop .3s ease;
+  }
+  .btn-row { display: flex; gap: 6px; }
+  .btn-row .btn-draw { flex: 1; }
+
+  /* ── 옵션 칩 ── */
+  .chips { display: flex; flex-direction: column; gap: 6px; }
+  .chip-row { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+  .chip {
+    font-size: 14px;
+    padding: 6px 13px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: #0d0a06;
+    color: var(--text-dim);
+    cursor: pointer;
+    user-select: none;
+    transition: all .15s;
+  }
+  .chip.on {
+    border-color: var(--border-hi);
+    background: #2e2410;
+    color: var(--gold);
+  }
+  .chip:hover { border-color: var(--gold); }
+  .chip-hint { text-align: center; font-size: 12px; color: var(--text-dim); letter-spacing: 1px; }
+
+  /* ── 버튼 ── */
+  button {
+    font-family: inherit;
+    cursor: pointer;
+    border-radius: 6px;
+    letter-spacing: 2px;
+    transition: all .15s;
+    white-space: nowrap; /* 좁은 화면에서 버튼 글자 줄바꿈 방지 */
+  }
+  .btn-draw {
+    padding: 12px 0;
+    font-size: 16px;
+    font-weight: bold;
+    color: #1a1206;
+    background: linear-gradient(180deg, #f7d47a, #cf9c35);
+    border: 1px solid #f5c451;
+    box-shadow: 0 2px 8px rgba(0,0,0,.4);
+  }
+  .btn-draw:hover { filter: brightness(1.1); }
+  .btn-draw:active { transform: translateY(1px); }
+  .btn-draw:disabled { filter: grayscale(.7) brightness(.6); cursor: default; }
+
+  .batch-bar {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    margin: 22px 0 36px;
+  }
+  .bo-select { display: flex; gap: 6px; }
+  .btn-batch {
+    padding: 16px 72px;
+    font-size: 20px;
+    font-weight: bold;
+    color: #1a1206;
+    background: linear-gradient(180deg, #ffe08a, #d5a437);
+    border: 2px solid var(--gold);
+    border-radius: 8px;
+    box-shadow: 0 0 24px rgba(245,196,81,.25), 0 4px 12px rgba(0,0,0,.5);
+  }
+  .btn-batch:hover { filter: brightness(1.08); box-shadow: 0 0 32px rgba(245,196,81,.4); }
+  .btn-batch:active { transform: translateY(1px); }
+  .btn-batch:disabled { filter: grayscale(.7) brightness(.6); cursor: default; }
+
+  /* ── 프로필 ── */
+  .profile-bar {
+    display: flex; gap: 8px; justify-content: center; align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+  }
+  .profile-bar .pb-label { font-size: 12px; color: var(--text-dim); letter-spacing: 2px; }
+  .profile-bar select, .profile-bar input {
+    font-family: inherit;
+    padding: 9px 12px;
+    font-size: 14px;
+    background: #0d0a06;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    outline: none;
+  }
+  .profile-bar select { min-width: 160px; }
+  .profile-bar input { width: 140px; }
+  .profile-bar select:focus, .profile-bar input:focus { border-color: var(--gold); }
+  .btn-small {
+    padding: 9px 18px;
+    font-size: 13px;
+    background: #2e2410;
+    border: 1px solid var(--border-hi);
+    color: var(--gold);
+  }
+  .btn-small:hover { filter: brightness(1.25); }
+  .btn-small.danger { background: #2a1410; border-color: #7a3a30; color: #ff8a7a; }
+
+  /* ── 기록 ── */
+  .log-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 8px; flex-wrap: wrap; }
+  .log-head h3 { white-space: nowrap; }
+  .log-head .log-btns { display: flex; gap: 6px; }
+  .log-panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin-bottom: 36px;
+    font-size: 15px;
+  }
+  .log-panel h3 { font-size: 14px; color: var(--text-dim); letter-spacing: 2px; }
+  .log-panel ul { list-style: none; max-height: 170px; overflow-y: auto; }
+  .log-panel.collapsed ul { display: none; }
+  .log-panel li { padding: 5px 0; border-bottom: 1px dashed #3a2e1a; color: var(--text); }
+  .log-panel li b { color: var(--gold); }
+  .log-empty { color: var(--text-dim); }
+
+  /* ── 대진 추첨 ── */
+  .bracket-section {
+    background: linear-gradient(180deg, var(--panel2), var(--panel));
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.5);
+  }
+  .bracket-head {
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 12px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 14px; margin-bottom: 16px;
+  }
+  .bracket-head h2 { font-family: var(--font-title); font-weight: 500; font-size: 19px; color: var(--gold-dim); letter-spacing: 2px; }
+  .tabs { display: flex; gap: 6px; }
+  .tab {
+    padding: 9px 20px;
+    font-size: 15px;
+    background: #0d0a06;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+  }
+  .tab.active {
+    background: #2e2410;
+    border-color: var(--gold);
+    color: var(--gold);
+    font-weight: bold;
+  }
+
+  .team-inputs {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  @media (max-width: 720px) { .team-inputs { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .team-inputs input {
+    font-family: inherit;
+    width: 100%;
+    min-width: 0; /* 그리드 안에서 내재 최소폭으로 화면을 밀어내지 않도록 */
+    padding: 11px 12px;
+    font-size: 15px;
+    background: #0d0a06;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    outline: none;
+  }
+  .team-inputs input:focus { border-color: var(--gold); }
+
+  .bracket-actions { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; }
+  .btn-bracket { padding: 11px 40px; font-size: 14px; font-weight: bold;
+    color: #1a1206; background: linear-gradient(180deg, #f7d47a, #cf9c35);
+    border: 1px solid var(--gold); }
+  .btn-bracket:hover { filter: brightness(1.1); }
+  .btn-bracket:disabled { filter: grayscale(.7) brightness(.6); cursor: default; }
+  .btn-reset {
+    padding: 11px 24px; font-size: 13px;
+    background: #0d0a06; border: 1px solid var(--border); color: var(--text-dim);
+  }
+  .btn-reset:hover { border-color: var(--gold); color: var(--gold); }
+
+  .bracket-view {
+    display: flex;
+    gap: 36px;
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding: 8px 4px 16px;
+  }
+  /* 내용이 화면보다 좁으면 중앙 정렬, 넘치면 가로 스크롤 (center는 왼쪽이 잘림) */
+  .bracket-view > .round:first-child { margin-left: auto; }
+  .bracket-view > .round:last-child { margin-right: auto; }
+  .round { display: flex; flex-direction: column; justify-content: space-around; gap: 18px; min-width: 200px; }
+  .round-title { text-align: center; font-size: 13px; color: var(--text-dim); letter-spacing: 2px; margin-bottom: -6px; }
+  .match {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    background: #0d0a06;
+  }
+  .slot {
+    padding: 12px 14px;
+    font-size: 15px;
+    min-height: 42px;
+    display: flex; align-items: center; justify-content: space-between;
+    color: var(--text-dim);
+  }
+  .slot + .slot { border-top: 1px solid #3a2e1a; }
+  .slot.filled { color: var(--text); cursor: pointer; }
+  .slot.filled:hover { background: #241b0e; }
+  .slot.winner { color: var(--gold); font-weight: bold; background: #2b2110; }
+  .slot.winner::after { content: '✔'; font-size: 11px; }
+  .slot.rolling { color: var(--gold); }
+  .champion-box {
+    border: 2px solid var(--gold);
+    border-radius: 6px;
+    background: #2b2110;
+    padding: 14px 12px;
+    text-align: center;
+    box-shadow: 0 0 18px rgba(245,196,81,.25);
+  }
+  .champion-box .label { font-size: 12px; color: var(--gold-dim); letter-spacing: 3px; margin-bottom: 6px; }
+  .champion-box .name { font-family: var(--font-title); font-weight: 700; font-size: 21px; color: var(--gold); min-height: 25px; }
+  .bracket-hint { text-align: center; font-size: 13px; color: var(--text-dim); margin-top: 6px; letter-spacing: 1px; }
+
+  /* ── 푸터 ── */
+  .footer {
+    text-align: center;
+    margin-top: 36px;
+    font-size: 12px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+  }
+  .footer b { color: var(--gold-dim); }
+  .footer-mail { margin-top: 5px; letter-spacing: 1px; }
+  .footer-mail a { color: var(--text-dim); text-decoration: none; }
+  .footer-mail a:hover { color: var(--gold); }
+
+  /* ── 모바일 ── */
+  @media (max-width: 700px) {
+    body { padding: 14px 8px 32px; }
+    h1 { font-size: 30px; letter-spacing: 4px; }
+    .subtitle { font-size: 12px; letter-spacing: 3px; margin-bottom: 18px; }
+    button { letter-spacing: 1px; }
+
+    .profile-bar { gap: 5px; }
+    .profile-bar .pb-label { display: none; }
+    .profile-bar select { flex: 1 1 45%; min-width: 0; font-size: 13px; padding: 8px 10px; }
+    .profile-bar input { flex: 1 1 45%; min-width: 0; width: auto; font-size: 13px; padding: 8px 10px; }
+    .btn-small { padding: 7px 10px; font-size: 11px; }
+
+    .cards { gap: 12px; }
+    .card { padding: 14px 12px 13px; gap: 11px; }
+    .card h2 { font-size: 15px; padding-bottom: 8px; }
+    .result { height: 60px; font-size: 22px; }
+    .coin-stage { min-height: 72px; }
+    .coin { width: 60px; height: 60px; }
+    .coin .face { font-size: 15px; }
+    .coin-teams input { padding: 8px 10px; font-size: 13px; }
+    .side-row { padding: 7px 10px 7px 8px; }
+    .side-row .side-name { font-size: 11px; }
+    .set-row { padding: 6px 10px 6px 8px; }
+    .set-row .set-label { font-size: 10px; padding: 2px 7px; }
+    .set-row .set-map, .side-row b { font-size: 14px; }
+    .chip { font-size: 12px; padding: 4px 9px; }
+    .chip-hint { font-size: 10px; }
+    .btn-draw { padding: 9px 0; font-size: 13px; }
+    .batch-bar { margin: 16px 0 24px; gap: 9px; }
+    .btn-batch { width: 100%; padding: 12px 0; font-size: 16px; }
+
+    .log-panel { padding: 10px 10px; font-size: 12px; margin-bottom: 24px; }
+    .log-panel h3 { font-size: 12px; }
+
+    .bracket-section { padding: 14px 10px; }
+    .bracket-head h2 { font-size: 15px; }
+    .tab { padding: 7px 12px; font-size: 12px; }
+    .team-inputs { gap: 6px; }
+    .team-inputs input { padding: 9px 10px; font-size: 13px; }
+    .btn-bracket { padding: 10px 28px; font-size: 13px; }
+    .btn-reset { padding: 10px 16px; font-size: 12px; }
+    .bracket-view { gap: 16px; }
+    .round { min-width: 132px; }
+    .round-title { font-size: 11px; }
+    .slot { padding: 9px 10px; font-size: 12px; min-height: 34px; }
+    .champion-box { padding: 10px 8px; }
+    .champion-box .name { font-size: 15px; }
+    .champion-box .label { font-size: 10px; }
+    .bracket-hint { font-size: 10px; }
+    .footer { margin-top: 24px; font-size: 10px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1><span class="t-red">C</span><span class="t-gold">YPHERS</span></h1>
+  <div class="subtitle">대회 통합 추첨 시스템</div>
+
+  <!-- ═══ 프로필 ═══ -->
+  <div class="profile-bar">
+    <span class="pb-label">프로필</span>
+    <select id="profileSelect" onchange="loadProfile(this.value)">
+      <option value="">— 프로필 선택 —</option>
+    </select>
+    <input id="profileName" placeholder="새 프로필 이름" maxlength="20">
+    <button class="btn-small" onclick="saveProfile()">저장</button>
+    <button class="btn-small danger" onclick="deleteProfile()">삭제</button>
+    <button class="btn-small" onclick="exportProfiles()">파일로 내보내기</button>
+    <button class="btn-small" onclick="document.getElementById('profileFile').click()">파일 가져오기</button>
+    <input type="file" id="profileFile" accept=".json" hidden onchange="importProfiles(this)">
+  </div>
+
+  <!-- ═══ 개별 추첨 카드 ═══ -->
+  <div class="cards">
+
+    <div class="card">
+      <h2>맵 추첨</h2>
+      <div class="result" id="mapResult">?</div>
+      <div class="series" id="mapSeries"></div>
+      <div class="chips" id="mapChips"></div>
+      <div class="chip-hint">클릭하여 추첨 풀 설정</div>
+      <div class="btn-row">
+        <button class="btn-draw" onclick="withLock(() => drawMap())">단판</button>
+        <button class="btn-draw" onclick="runSeries('map', 3)">BO3</button>
+        <button class="btn-draw" onclick="runSeries('map', 5)">BO5</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>코인토스</h2>
+      <div class="coin-teams">
+        <input id="coinTeamA" placeholder="팀 1" maxlength="20">
+        <input id="coinTeamB" placeholder="팀 2" maxlength="20">
+      </div>
+      <div class="coin-stage">
+        <div class="coin" id="coin">
+          <div class="face front">회사</div>
+          <div class="face back">연합</div>
+        </div>
+      </div>
+      <div class="coin-sides">
+        <div class="side-row company"><span class="side-name">회사 사이드 (블루)</span><b id="sideCompany">-</b></div>
+        <div class="side-row union"><span class="side-name">연합 사이드 (레드)</span><b id="sideUnion">-</b></div>
+      </div>
+      <button class="btn-draw" onclick="withLock(() => drawCoin())">코인토스</button>
+    </div>
+
+    <div class="card">
+      <h2>부가 몬스터</h2>
+      <div class="result" id="monResult">?</div>
+      <div class="series" id="monSeries"></div>
+      <div class="chips" id="monChips"></div>
+      <div class="chip-hint">클릭하여 추첨 풀 설정</div>
+      <div class="btn-row">
+        <button class="btn-draw" onclick="withLock(() => drawMonster())">단판</button>
+        <button class="btn-draw" onclick="runSeries('mon', 3)">BO3</button>
+        <button class="btn-draw" onclick="runSeries('mon', 5)">BO5</button>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="batch-bar">
+    <div class="bo-select">
+      <button class="tab bo-tab active" data-bo="1" onclick="setBatchBo(1)">BO1</button>
+      <button class="tab bo-tab" data-bo="3" onclick="setBatchBo(3)">BO3</button>
+      <button class="tab bo-tab" data-bo="5" onclick="setBatchBo(5)">BO5</button>
+    </div>
+    <button class="btn-batch" id="batchBtn" onclick="drawAll()">⚡ 일괄 추첨</button>
+  </div>
+
+  <div class="log-panel">
+    <div class="log-head">
+      <h3>추첨 기록</h3>
+      <div class="log-btns">
+        <button class="btn-small" id="logToggle" onclick="toggleLog()">▲ 접기</button>
+        <button class="btn-small" onclick="exportLog()">.txt 저장</button>
+        <button class="btn-small danger" onclick="clearLog()">기록 지우기</button>
+      </div>
+    </div>
+    <ul id="log"><li class="log-empty">아직 추첨 기록이 없습니다.</li></ul>
+  </div>
+
+  <!-- ═══ 대진 추첨 ═══ -->
+  <div class="bracket-section">
+    <div class="bracket-head">
+      <h2>대진 추첨</h2>
+      <div class="tabs">
+        <button class="tab active" id="tab8" onclick="setMode(8)">예선 (8팀)</button>
+        <button class="tab" id="tab4" onclick="setMode(4)">본선 (4팀)</button>
+      </div>
+    </div>
+
+    <div class="team-inputs" id="teamInputs"></div>
+
+    <div class="bracket-actions">
+      <button class="btn-bracket" id="bracketBtn" onclick="drawBracket()">대진 추첨</button>
+      <button class="btn-reset" onclick="resetBracket()">초기화</button>
+    </div>
+
+    <div class="bracket-view" id="bracketView"></div>
+    <div class="bracket-hint">대진 추첨 후, 경기 승리 팀을 클릭하면 다음 라운드로 진출합니다.</div>
+  </div>
+
+  <div class="footer">
+    Presented by <b>TeamLuX</b>
+    <div class="footer-mail"><a href="mailto:lcf2025official@gmail.com">lcf2025official@gmail.com</a></div>
+  </div>
+</div>
+
+<script>
+// ═══════════ 데이터 ═══════════
+const MAP_ROWS = [
+  ['스프링필드', '브리스톨'],
+  ['메트로폴리스', '리버포드']
+];
+const MON_ROWS = [
+  ['미등장', '크라센(미니트루퍼)'],
+  ['골드 센티넬', '폭탄 센티넬', '전투 지원병']
+];
+
+let logCount = 0;
+let coinTurns = 0;
+
+// ═══════════ 저장소 (localStorage) ═══════════
+const LS_STATE = 'cyphersState';
+const LS_PROFILES = 'cyphersProfiles';
+const LS_LOGS = 'cyphersLogs';
+
+function lsGet(key, fallback) {
+  try {
+    const v = JSON.parse(localStorage.getItem(key));
+    return v === null || v === undefined ? fallback : v;
+  } catch (e) { return fallback; }
+}
+function lsSet(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
+}
+
+// 팀명은 모드 전환/재시작에도 유지되도록 별도 보관
+let teams8 = ['', '', '', '', '', '', '', ''];
+let teams4 = ['', '', '', ''];
+
+function collectSetup() {
+  return {
+    coinA: document.getElementById('coinTeamA').value,
+    coinB: document.getElementById('coinTeamB').value,
+    teams8: [...teams8],
+    teams4: [...teams4],
+    mapPool: enabledOf('mapChips'),
+    monPool: enabledOf('monChips'),
+    mode: mode,
+    bracket: rounds // 대진 추첨 결과(진출 현황 포함)도 함께 저장
+  };
+}
+
+function setPool(containerId, pool) {
+  if (!pool || !pool.length) return;
+  document.querySelectorAll('#' + containerId + ' .chip').forEach(c => {
+    c.classList.toggle('on', pool.includes(c.textContent));
+  });
+}
+
+function applySetup(s) {
+  if (s.coinA !== undefined) document.getElementById('coinTeamA').value = s.coinA;
+  if (s.coinB !== undefined) document.getElementById('coinTeamB').value = s.coinB;
+  if (s.teams8) teams8 = [...s.teams8];
+  if (s.teams4) teams4 = [...s.teams4];
+  if (s.mode === 8 || s.mode === 4) {
+    mode = s.mode;
+    document.getElementById('tab8').classList.toggle('active', mode === 8);
+    document.getElementById('tab4').classList.toggle('active', mode === 4);
+  }
+  buildInputs();
+  setPool('mapChips', s.mapPool);
+  setPool('monChips', s.monPool);
+  // 저장된 대진표가 현재 팀 수와 맞으면 복원, 아니면 빈 대진표
+  if (Array.isArray(s.bracket) && s.bracket.length && s.bracket[0].length === mode / 2) {
+    rounds = s.bracket;
+    renderBracket();
+  } else {
+    resetBracket();
+  }
+}
+
+function saveState() {
+  lsSet(LS_STATE, Object.assign(collectSetup(), { batchBo: batchBo }));
+}
+
+// ═══════════ 프로필 ═══════════
+function refreshProfileSelect(selected) {
+  const sel = document.getElementById('profileSelect');
+  const names = Object.keys(lsGet(LS_PROFILES, {}));
+  sel.innerHTML = '<option value="">— 프로필 선택 —</option>' +
+    names.map(n => '<option' + (n === selected ? ' selected' : '') + '>' + n + '</option>').join('');
+}
+
+function saveProfile() {
+  const nameInput = document.getElementById('profileName');
+  const name = nameInput.value.trim() || document.getElementById('profileSelect').value;
+  if (!name) { alert('새 프로필 이름을 입력하거나, 덮어쓸 프로필을 선택하세요.'); return; }
+  const profiles = lsGet(LS_PROFILES, {});
+  profiles[name] = collectSetup();
+  lsSet(LS_PROFILES, profiles);
+  refreshProfileSelect(name);
+  nameInput.value = '';
+}
+
+function loadProfile(name) {
+  if (!name) return;
+  const p = lsGet(LS_PROFILES, {})[name];
+  if (!p) return;
+  applySetup(p);
+  saveState();
+}
+
+function deleteProfile() {
+  const sel = document.getElementById('profileSelect');
+  if (!sel.value) { alert('삭제할 프로필을 선택하세요.'); return; }
+  if (!confirm('프로필 "' + sel.value + '"을(를) 삭제할까요?')) return;
+  const profiles = lsGet(LS_PROFILES, {});
+  delete profiles[sel.value];
+  lsSet(LS_PROFILES, profiles);
+  refreshProfileSelect('');
+}
+
+// 프로필을 .json 파일로 내보내기/가져오기 (다른 PC·브라우저로 전달용)
+function exportProfiles() {
+  const profiles = lsGet(LS_PROFILES, {});
+  if (!Object.keys(profiles).length) { alert('저장된 프로필이 없습니다. 먼저 프로필을 저장하세요.'); return; }
+  const now = new Date();
+  const stamp = now.getFullYear() + '-' +
+    String(now.getMonth() + 1).padStart(2, '0') + '-' +
+    String(now.getDate()).padStart(2, '0');
+  const blob = new Blob(
+    [JSON.stringify({ type: 'cyphers-profiles', exported: now.toISOString(), profiles: profiles }, null, 2)],
+    { type: 'application/json;charset=utf-8' }
+  );
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '사이퍼즈_프로필_' + stamp + '.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function mergeImportedProfiles(jsonText) {
+  const data = JSON.parse(jsonText);
+  const incoming = data && data.profiles ? data.profiles : data;
+  if (!incoming || typeof incoming !== 'object' || Array.isArray(incoming)) return 0;
+  const profiles = lsGet(LS_PROFILES, {});
+  let count = 0;
+  for (const name of Object.keys(incoming)) {
+    const p = incoming[name];
+    if (p && typeof p === 'object') { profiles[name] = p; count++; }
+  }
+  if (count) {
+    lsSet(LS_PROFILES, profiles);
+    refreshProfileSelect('');
+  }
+  return count;
+}
+
+function importProfiles(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const count = mergeImportedProfiles(reader.result);
+      if (count) alert(count + '개 프로필을 가져왔습니다. 드롭다운에서 선택하세요.');
+      else alert('파일에서 가져올 프로필을 찾지 못했습니다.');
+    } catch (e) {
+      alert('프로필 파일을 읽을 수 없습니다. 내보내기로 만든 .json 파일인지 확인하세요.');
+    }
+    input.value = '';
+  };
+  reader.readAsText(file);
+}
+
+// ═══════════ 옵션 칩 ═══════════
+function buildChips(containerId, rows) {
+  const box = document.getElementById(containerId);
+  rows.forEach(items => {
+    const rowEl = document.createElement('div');
+    rowEl.className = 'chip-row';
+    items.forEach(name => {
+      const c = document.createElement('span');
+      c.className = 'chip on';
+      c.textContent = name;
+      c.onclick = () => {
+        const onCount = box.querySelectorAll('.chip.on').length;
+        if (c.classList.contains('on') && onCount <= 1) return; // 최소 1개 유지
+        c.classList.toggle('on');
+        saveState();
+      };
+      rowEl.appendChild(c);
+    });
+    box.appendChild(rowEl);
+  });
+}
+buildChips('mapChips', MAP_ROWS);
+buildChips('monChips', MON_ROWS);
+
+function enabledOf(containerId) {
+  return [...document.querySelectorAll('#' + containerId + ' .chip.on')].map(c => c.textContent);
+}
+
+// ═══════════ 슬롯머신 연출 ═══════════
+// requestAnimationFrame은 창이 가려지면 멈추므로 setTimeout 체인으로 구현
+function spinTo(el, pool, duration, forced) {
+  return new Promise(resolve => {
+    const finalPick = forced !== undefined ? forced : pool[Math.floor(Math.random() * pool.length)];
+    el.classList.remove('done');
+    el.classList.add('rolling');
+    const start = Date.now();
+    function step() {
+      const t = Date.now() - start; // 실제 경과 시간 기준 (백그라운드 지연에도 총 시간 보장)
+      if (t >= duration) {
+        el.textContent = finalPick;
+        el.classList.remove('rolling');
+        el.classList.add('done');
+        resolve(finalPick);
+        return;
+      }
+      let next;
+      do { next = pool[Math.floor(Math.random() * pool.length)]; }
+      while (pool.length > 1 && next === el.textContent);
+      el.textContent = next;
+      // 점점 느려지는 간격
+      setTimeout(step, 55 + 260 * Math.pow(t / duration, 2.4));
+    }
+    step();
+  });
+}
+
+// ═══════════ 개별 추첨 ═══════════
+// 추첨 중 다른 버튼이 눌리지 않도록 잠금
+async function withLock(fn) {
+  const btns = document.querySelectorAll('.btn-draw, .btn-batch');
+  btns.forEach(b => b.disabled = true);
+  try { return await fn(); }
+  finally { btns.forEach(b => b.disabled = false); }
+}
+
+async function drawMap(silent) {
+  document.getElementById('mapSeries').innerHTML = '';
+  const pool = enabledOf('mapChips');
+  const r = await spinTo(document.getElementById('mapResult'), pool, 1600);
+  if (!silent) addLog('맵', r);
+  return r;
+}
+
+// ═══════════ BO3 / BO5 세트별 추첨 (중복 허용 완전 랜덤) ═══════════
+const SERIES_CFG = {
+  map: { chips: 'mapChips', series: 'mapSeries', result: 'mapResult', label: '맵' },
+  mon: { chips: 'monChips', series: 'monSeries', result: 'monResult', label: '부가몬스터' }
+};
+
+async function drawSeries(kind, n, silent) {
+  const cfg = SERIES_CFG[kind];
+  const pool = enabledOf(cfg.chips);
+  const seq = Array.from({ length: n }, () => pool[Math.floor(Math.random() * pool.length)]);
+
+  const res = document.getElementById(cfg.result);
+  res.textContent = 'BO' + n;
+  res.className = 'result done';
+
+  const box = document.getElementById(cfg.series);
+  box.innerHTML = '';
+  const rows = seq.map((_, i) => {
+    const row = document.createElement('div');
+    row.className = 'set-row';
+    row.innerHTML = '<span class="set-label">' + (i + 1) + '세트</span><span class="set-map">?</span>';
+    box.appendChild(row);
+    return row;
+  });
+
+  for (let i = 0; i < n; i++) {
+    await spinTo(rows[i].querySelector('.set-map'), pool, 700, seq[i]);
+  }
+
+  if (!silent) {
+    addLog('', cfg.label + ' BO' + n + ' — ' + seq.map((m, i) => (i + 1) + '세트: <b>' + m + '</b>').join(' / '), true);
+  }
+  return seq;
+}
+
+function runSeries(kind, n) {
+  return withLock(() => drawSeries(kind, n, false));
+}
+
+async function drawMonster(silent) {
+  document.getElementById('monSeries').innerHTML = '';
+  const pool = enabledOf('monChips');
+  const r = await spinTo(document.getElementById('monResult'), pool, 1600);
+  if (!silent) addLog('부가몬스터', r);
+  return r;
+}
+
+function coinTeams() {
+  return [
+    document.getElementById('coinTeamA').value.trim() || '팀 1',
+    document.getElementById('coinTeamB').value.trim() || '팀 2'
+  ];
+}
+
+function drawCoin(silent) {
+  return new Promise(resolve => {
+    const coin = document.getElementById('coin');
+    const [a, b] = coinTeams();
+    const aIsCompany = Math.random() < 0.5; // 코인 앞면(회사) = 팀 1이 회사 사이드
+    const company = aIsCompany ? a : b;
+    const union = aIsCompany ? b : a;
+
+    const cEl = document.getElementById('sideCompany');
+    const uEl = document.getElementById('sideUnion');
+    cEl.textContent = '...'; cEl.classList.remove('done');
+    uEl.textContent = '...'; uEl.classList.remove('done');
+
+    // 항상 앞으로 여러 바퀴 더 돌도록 누적 회전
+    coinTurns += 5;
+    const target = coinTurns * 360 + (aIsCompany ? 0 : 180);
+    coin.style.transition = 'transform 1.6s cubic-bezier(.22,.9,.35,1)';
+    coin.style.transform = 'rotateY(' + target + 'deg)';
+
+    setTimeout(() => {
+      cEl.textContent = company; cEl.classList.add('done');
+      uEl.textContent = union; uEl.classList.add('done');
+      const summary = '회사(블루): <b>' + company + '</b> · 연합(레드): <b>' + union + '</b>';
+      if (!silent) addLog('', '코인토스 — ' + summary, true);
+      resolve(summary);
+    }, 1650);
+  });
+}
+
+// ═══════════ 일괄 추첨 ═══════════
+let batchBo = 1;
+
+function setBatchBo(n, skipSave) {
+  batchBo = n;
+  document.querySelectorAll('.bo-tab').forEach(b => b.classList.toggle('active', +b.dataset.bo === n));
+  if (!skipSave) saveState();
+}
+
+async function drawAll() {
+  await withLock(async () => {
+    if (batchBo === 1) {
+      const [map, side, mon] = await Promise.all([
+        drawMap(true),
+        drawCoin(true),
+        drawMonster(true)
+      ]);
+      addLog('일괄', '맵: <b>' + map + '</b> / 코인토스 ' + side + ' / 부가몬스터: <b>' + mon + '</b>', true);
+    } else {
+      const [maps, side, mons] = await Promise.all([
+        drawSeries('map', batchBo, true),
+        drawCoin(true),
+        drawSeries('mon', batchBo, true)
+      ]);
+      const sets = maps.map((m, i) => (i + 1) + '세트: <b>' + m + '</b>·<b>' + mons[i] + '</b>');
+      addLog('', '일괄 BO' + batchBo + ' — 코인토스 ' + side + ' / ' + sets.join(' / '), true);
+    }
+  });
+}
+
+// ═══════════ 기록 ═══════════
+let logLines = []; // 오래된 것 → 최신 순으로 보관
+
+function renderLogLine(html) {
+  const ul = document.getElementById('log');
+  const empty = ul.querySelector('.log-empty');
+  if (empty) empty.remove();
+  const li = document.createElement('li');
+  li.innerHTML = html;
+  ul.prepend(li);
+}
+
+function addLog(kind, text, isHtml) {
+  logCount++;
+  const time = new Date().toLocaleString('ko-KR', {
+    month: 'numeric', day: 'numeric',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+  });
+  const line = isHtml
+    ? '#' + logCount + ' [' + time + '] ' + text
+    : '#' + logCount + ' [' + time + '] ' + kind + ' → <b>' + text + '</b>';
+  logLines.push(line);
+  if (logLines.length > 500) logLines.shift();
+  lsSet(LS_LOGS, { count: logCount, lines: logLines });
+  renderLogLine(line);
+  updateLogToggle(); // 접힌 상태면 건수 갱신
+}
+
+function restoreLogs() {
+  const saved = lsGet(LS_LOGS, null);
+  if (!saved || !saved.lines || !saved.lines.length) return;
+  logCount = saved.count || saved.lines.length;
+  logLines = saved.lines;
+  logLines.forEach(renderLogLine);
+}
+
+function stripHtml(html) {
+  const d = document.createElement('div');
+  d.innerHTML = html;
+  return d.textContent;
+}
+
+function exportLog() {
+  if (!logLines.length) { alert('저장할 추첨 기록이 없습니다.'); return; }
+  const now = new Date();
+  const stamp = now.getFullYear() + '-' +
+    String(now.getMonth() + 1).padStart(2, '0') + '-' +
+    String(now.getDate()).padStart(2, '0');
+  const header = '사이퍼즈 대회 추첨 기록 (내보낸 시각: ' + now.toLocaleString('ko-KR') + ')\r\n' + '='.repeat(50) + '\r\n';
+  const body = logLines.map(stripHtml).join('\r\n');
+  const blob = new Blob(['﻿' + header + body], { type: 'text/plain;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '사이퍼즈_추첨기록_' + stamp + '.txt';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function updateLogToggle() {
+  const collapsed = document.querySelector('.log-panel').classList.contains('collapsed');
+  document.getElementById('logToggle').textContent = collapsed ? '▼ 펼치기 (' + logLines.length + ')' : '▲ 접기';
+}
+
+function toggleLog(skipSave) {
+  const collapsed = document.querySelector('.log-panel').classList.toggle('collapsed');
+  updateLogToggle();
+  if (!skipSave) lsSet('cyphersLogCollapsed', collapsed);
+}
+
+function clearLog() {
+  if (!logLines.length) return;
+  if (!confirm('추첨 기록을 모두 지울까요? (.txt로 먼저 저장하는 것을 권장합니다)')) return;
+  logLines = [];
+  logCount = 0;
+  lsSet(LS_LOGS, { count: 0, lines: [] });
+  document.getElementById('log').innerHTML = '<li class="log-empty">아직 추첨 기록이 없습니다.</li>';
+  updateLogToggle();
+}
+
+// ═══════════ 대진 추첨 ═══════════
+let mode = 8;          // 8 = 예선, 4 = 본선
+let rounds = [];       // rounds[r][m] = { slots: [name|null, name|null], winner: null|0|1 }
+
+function setMode(n) {
+  mode = n;
+  document.getElementById('tab8').classList.toggle('active', n === 8);
+  document.getElementById('tab4').classList.toggle('active', n === 4);
+  buildInputs();
+  resetBracket();
+  saveState();
+}
+
+function buildInputs() {
+  const box = document.getElementById('teamInputs');
+  const store = mode === 8 ? teams8 : teams4;
+  box.innerHTML = '';
+  for (let i = 0; i < mode; i++) {
+    const inp = document.createElement('input');
+    inp.placeholder = '팀 ' + (i + 1);
+    inp.id = 'team' + i;
+    inp.maxLength = 20;
+    inp.value = store[i] || '';
+    inp.oninput = () => { store[i] = inp.value; saveState(); };
+    box.appendChild(inp);
+  }
+}
+
+function teamNames() {
+  const names = [];
+  for (let i = 0; i < mode; i++) {
+    const v = document.getElementById('team' + i).value.trim();
+    names.push(v || '팀 ' + (i + 1));
+  }
+  return names;
+}
+
+function newBracketStructure() {
+  rounds = [];
+  let matches = mode / 2;
+  while (matches >= 1) {
+    const round = [];
+    for (let m = 0; m < matches; m++) round.push({ slots: [null, null], winner: null });
+    rounds.push(round);
+    matches = Math.floor(matches / 2);
+  }
+}
+
+function roundName(rIdx) {
+  const total = rounds.length;
+  if (rIdx === total - 1) return '결승';
+  if (rIdx === total - 2) return '4강';
+  return '8강';
+}
+
+function renderBracket() {
+  const view = document.getElementById('bracketView');
+  view.innerHTML = '';
+  if (!rounds.length) return;
+
+  rounds.forEach((round, rIdx) => {
+    const col = document.createElement('div');
+    col.className = 'round';
+    const title = document.createElement('div');
+    title.className = 'round-title';
+    title.textContent = roundName(rIdx);
+    col.appendChild(title);
+
+    round.forEach((match, mIdx) => {
+      const box = document.createElement('div');
+      box.className = 'match';
+      match.slots.forEach((name, sIdx) => {
+        const slot = document.createElement('div');
+        slot.className = 'slot';
+        slot.textContent = name || '- 대기 -';
+        if (name) {
+          slot.classList.add('filled');
+          if (match.winner === sIdx) slot.classList.add('winner');
+          slot.onclick = () => pickWinner(rIdx, mIdx, sIdx);
+        }
+        box.appendChild(slot);
+      });
+      col.appendChild(box);
+    });
+    view.appendChild(col);
+  });
+
+  // 우승 박스
+  const finalMatch = rounds[rounds.length - 1][0];
+  const champCol = document.createElement('div');
+  champCol.className = 'round';
+  champCol.style.justifyContent = 'center';
+  const champ = document.createElement('div');
+  champ.className = 'champion-box';
+  const winnerName = finalMatch.winner !== null ? finalMatch.slots[finalMatch.winner] : '';
+  champ.innerHTML = '<div class="label">🏆 우승</div><div class="name">' + (winnerName || '-') + '</div>';
+  champCol.appendChild(champ);
+  view.appendChild(champCol);
+}
+
+function pickWinner(rIdx, mIdx, sIdx) {
+  const match = rounds[rIdx][mIdx];
+  if (!match.slots[sIdx]) return;
+  match.winner = (match.winner === sIdx) ? null : sIdx;
+  cascade();
+  renderBracket();
+  saveState();
+}
+
+function cascade() {
+  for (let r = 0; r + 1 < rounds.length; r++) {
+    rounds[r].forEach((match, mIdx) => {
+      const nextMatch = rounds[r + 1][Math.floor(mIdx / 2)];
+      const nextSlot = mIdx % 2;
+      const advancing = match.winner !== null ? match.slots[match.winner] : null;
+      if (nextMatch.slots[nextSlot] !== advancing) {
+        nextMatch.slots[nextSlot] = advancing;
+        nextMatch.winner = null; // 진출 팀이 바뀌면 해당 매치 승자 무효
+      }
+    });
+  }
+}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+async function drawBracket() {
+  const btn = document.getElementById('bracketBtn');
+  btn.disabled = true;
+
+  newBracketStructure();
+  renderBracket();
+
+  const order = shuffle(teamNames());
+  const view = document.getElementById('bracketView');
+  const firstRoundSlots = view.querySelectorAll('.round:first-child .slot');
+
+  // 한 슬롯씩 순차 공개 (슬롯머신 느낌)
+  for (let i = 0; i < order.length; i++) {
+    const slotEl = firstRoundSlots[i];
+    const pool = order.slice(i); // 남은 팀들 중에서 돌아가는 연출
+    await new Promise(resolve => {
+      const dur = 800;
+      const start = Date.now();
+      slotEl.classList.add('rolling');
+      function step() {
+        const t = Date.now() - start;
+        if (t >= dur) {
+          slotEl.textContent = order[i];
+          slotEl.classList.remove('rolling');
+          resolve();
+          return;
+        }
+        slotEl.textContent = pool[Math.floor(Math.random() * pool.length)];
+        setTimeout(step, 50 + 180 * Math.pow(t / dur, 2));
+      }
+      step();
+    });
+    rounds[0][Math.floor(i / 2)].slots[i % 2] = order[i];
+  }
+
+  renderBracket();
+  saveState();
+  const label = mode === 8 ? '예선 대진 (8팀)' : '본선 대진 (4팀)';
+  const pairs = rounds[0].map((m, i) => (i + 1) + '경기: <b>' + m.slots[0] + '</b> vs <b>' + m.slots[1] + '</b>').join(' / ');
+  addLog('대진', label + ' — ' + pairs, true);
+  btn.disabled = false;
+}
+
+function resetBracket() {
+  rounds = [];
+  newBracketStructure();
+  rounds.forEach(r => r.forEach(m => { m.slots = [null, null]; m.winner = null; }));
+  renderBracket();
+  saveState();
+}
+
+// ═══════════ 초기화 (저장된 상태 복원) ═══════════
+document.getElementById('coinTeamA').oninput = saveState;
+document.getElementById('coinTeamB').oninput = saveState;
+
+const savedState = lsGet(LS_STATE, null);
+if (savedState) {
+  if (savedState.batchBo === 3 || savedState.batchBo === 5) setBatchBo(savedState.batchBo, true);
+  applySetup(savedState); // buildInputs·대진표 복원 포함
+} else {
+  buildInputs();
+  resetBracket();
+}
+restoreLogs();
+if (lsGet('cyphersLogCollapsed', false)) toggleLog(true);
+refreshProfileSelect('');
+</script>
+</body>
+</html>
