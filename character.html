@@ -355,9 +355,13 @@
       transition: all .15s; white-space: nowrap;
     }
     .size-btn.active { background: #2e2410; border-color: var(--gold); color: var(--gold); }
-    .preset-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+    .box-head {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 8px; margin-bottom: 10px;
+    }
+    .box-head h3 { margin-bottom: 0; }
     .preset-btn {
-      flex: 1 1 auto; padding: 8px 10px; border-radius: 6px;
+      flex: 0 0 auto; padding: 7px 12px; border-radius: 6px;
       background: #0d0a06; border: 1px solid var(--border); color: var(--text-dim);
       font-family: inherit; font-size: 12px; cursor: pointer; transition: all .15s;
       white-space: nowrap;
@@ -486,13 +490,13 @@
         <button class="size-btn" data-size="4" onclick="setPartySize(4)">4인</button>
         <button class="size-btn active" data-size="5" onclick="setPartySize(5)">5인</button>
       </div>
-      <div class="preset-row">
-        <button class="preset-btn" onclick="applyPreset('all')">전체 슬롯 초기화</button>
-      </div>
     </div>
 
     <div class="party-box">
-      <h3>슬롯별 포지션</h3>
+      <div class="box-head">
+        <h3>슬롯별 포지션</h3>
+        <button class="preset-btn" onclick="applyPreset('all')">↺ 포지션 지정 해제</button>
+      </div>
       <div class="slot-list" id="slotList"></div>
       <div class="party-note">슬롯마다 전체 또는 역할군을 자유롭게 지정</div>
     </div>
