@@ -212,17 +212,19 @@
     #result-box .draw-time { font-size: 13px; color: var(--text-dim); height: 18px; line-height: 18px; }
     /* 캐릭터 이름 아래 1st / 2nd 배지 (자리를 항상 차지해 높이 고정) */
     #result-box .ult-row {
-      height: 24px; line-height: 24px; margin-top: 10px;
+      height: 26px; margin-top: 10px;
       display: flex; align-items: center; justify-content: center; gap: 6px;
-      flex-wrap: nowrap; overflow: hidden;
+      flex-wrap: nowrap; overflow: visible; /* 배지 팝 애니메이션이 잘리지 않도록 */
     }
     .ult-badge {
       animation: pop .3s ease;
-      display: inline-block; padding: 2px 9px;
+      display: inline-flex; align-items: center;
+      height: 24px; padding: 0 11px;
       border-radius: 999px; border: 1px solid var(--border-hi);
       background: #2e2410; color: var(--gold-dim);
       font-family: var(--font-body); font-size: 11px; font-weight: 700;
-      letter-spacing: 1px; vertical-align: middle; text-shadow: none;
+      line-height: 1; letter-spacing: 1px; white-space: nowrap;
+      vertical-align: middle; text-shadow: none;
     }
     #result-box .done-icon { font-size: 40px; margin-bottom: 12px; }
     #result-box .done-title { font-family: var(--font-title); font-weight: 700; font-size: 22px; color: var(--gold); }
@@ -468,8 +470,8 @@
       #result-box { padding: 16px 10px; height: 182px; }
       #result-box .draw-name,
       #result-box .result-name { font-size: 34px; height: 50px; line-height: 50px; letter-spacing: 2px; }
-      #result-box .ult-row { height: 22px; line-height: 22px; margin-top: 8px; gap: 4px; }
-      .ult-badge { font-size: 10px; padding: 2px 7px; }
+      #result-box .ult-row { height: 24px; margin-top: 8px; gap: 5px; }
+      .ult-badge { font-size: 10px; height: 22px; padding: 0 9px; }
       #draw-btn { padding: 14px; font-size: 16px; }
       .tab-btn { padding: 8px 11px; font-size: 12px; letter-spacing: 0; }
       .btn-sub { margin-left: 6px; font-size: 11px; }
@@ -620,14 +622,6 @@ function candidatesOf(filter) {
   if (filter === "all" || !ROLES[filter]) return ALL_CHARACTERS.map(c => ({ base: c, ult: 0 }));
   return ROLES[filter];
 }
-// 캐릭터가 속한 역할군 표시용 (예: "뱅가드 2nd / 스트라이커 1st")
-function rolesOf(name) {
-  const out = [];
-  Object.keys(ROLES).forEach(r => {
-    ROLES[r].forEach(e => { if (e.base === name) out.push(r + " " + ultLabel(e.ult)); });  // 예: "뱅가드 2nd"
-  });
-  return out;
-}
 function roleMembers(role) {
   return new Set((ROLES[role] || []).map(e => e.base));
 }
@@ -638,11 +632,18 @@ Object.keys(ROLES).forEach(r => ROLES[r].forEach(e => {
   const list = ULTS_BY_CHAR[e.base] = ULTS_BY_CHAR[e.base] || [];
   if (!list.includes(e.ult)) list.push(e.ult);
 }));
-// 궁이 정해지지 않은 후보(전체 슬롯)에 궁을 무작위로 배정
+// 궁이 정해지지 않은 후보(완전 랜덤)에 궁을 무작위로 배정
 function resolveUlt(entry) {
   if (entry.ult) return entry;
   const list = ULTS_BY_CHAR[entry.base] || [1];
   return { base: entry.base, ult: list[Math.floor(Math.random() * list.length)] };
+}
+// 특정 캐릭터+궁 조합의 역할군 (조합당 역할군은 하나)
+function roleOf(base, ult) {
+  for (const r of Object.keys(ROLES)) {
+    if (ROLES[r].some(e => e.base === base && e.ult === ult)) return r;
+  }
+  return "";
 }
 
 const STORAGE_KEY = "cyphers-draw-log";
@@ -780,17 +781,17 @@ function draw() {
   let count = 0;
   const totalFrames = 24;
   const interval = setInterval(() => {
-    const rnd = remaining[Math.floor(Math.random() * remaining.length)];
+    const rnd = resolveUlt(remaining[Math.floor(Math.random() * remaining.length)]);
     document.getElementById("rolling-name").textContent = rnd.base;
     // 배지도 처음부터 함께 롤링 (확정 순간에 툭 튀어나오지 않도록)
-    document.getElementById("rolling-ult").innerHTML =
-      rnd.ult ? `<span class="ult-badge">${ultLabel(rnd.ult)}</span>` : "&nbsp;";
+    document.getElementById("rolling-ult").innerHTML = badgeHTML(rnd.base, rnd.ult, drawMode !== "all");
     count++;
     if (count >= totalFrames) {
       clearInterval(interval);
-      const pick = remaining[Math.floor(Math.random() * remaining.length)];
-      const entry = { name: pick.base, time: new Date().toISOString() };
-      if (drawMode !== "all") { entry.role = drawMode; entry.ult = pick.ult; }
+      // 완전 랜덤도 캐릭터를 고른 뒤 그 캐릭터가 가진 궁 중 하나를 배정
+      const pick = resolveUlt(remaining[Math.floor(Math.random() * remaining.length)]);
+      const entry = { name: pick.base, time: new Date().toISOString(), ult: pick.ult };
+      if (drawMode !== "all") entry.role = drawMode;
       log.push(entry);
       saveLog();
       animating = false;
@@ -801,23 +802,24 @@ function draw() {
 }
 
 // ── 결과 표시 ─────────────────────────────────────
+// 배지: 포지션 추첨이면 궁만("1st"), 완전 랜덤이면 역할군까지("뱅가드 1st")
+function badgeHTML(name, ult, roleMode) {
+  if (!ult) return "&nbsp;";
+  const text = roleMode ? ultLabel(ult) : `${roleOf(name, ult)} ${ultLabel(ult)}`.trim();
+  return `<span class="ult-badge">${text}</span>`;
+}
+
 function showResult(name, time, role, ult) {
   // 역할군·궁 정보는 라벨 텍스트가 아니라 이름 아래 배지로만 표시
   let label = `#${log.length} 추첨 결과`;
-  let badges;
-  if (role) {
-    label += ` · ${role}`;
-    badges = `<span class="ult-badge">${ultLabel(ult)}</span>`;
-  } else {
-    // 완전 랜덤: 그 캐릭터가 가진 역할군을 궁별 배지로 (예: 컨트롤러 1st · 컨트롤러 2nd)
-    badges = rolesOf(name).map(t => `<span class="ult-badge">${t}</span>`).join("");
-  }
+  if (role) label += ` · ${role}`;
+  const badges = badgeHTML(name, ult, !!role);
   const box = document.getElementById("result-box");
   box.classList.add("has-result");
   box.innerHTML = `
     <div class="result-label">${label}</div>
     <div class="result-name">${name}</div>
-    <div class="ult-row">${badges || "&nbsp;"}</div>
+    <div class="ult-row">${badges}</div>
     <div class="result-time">${formatDate(time)}</div>
   `;
 }
@@ -850,7 +852,8 @@ function importLogFile(input) {
       const valid = incoming.filter(e => e && typeof e.name === "string" && e.name)
         .map(e => {
           const item = { name: e.name, time: e.time || new Date().toISOString() };
-          if (e.role && ROLES[e.role]) { item.role = e.role; item.ult = (e.ult === 2 ? 2 : 1); }
+          if (e.ult === 1 || e.ult === 2) item.ult = e.ult;
+          if (e.role && ROLES[e.role]) item.role = e.role;
           return item;
         });
       if (!valid.length) { alert("파일에서 불러올 기록을 찾지 못했습니다."); return; }
@@ -1065,7 +1068,7 @@ function renderLog() {
         <div class="log-num ${i === 0 ? 'latest' : ''}">${log.length - i}</div>
         <div>
           <div class="log-name">${entry.name}</div>
-          <div class="log-time">${entry.role ? entry.role + " " + ultLabel(entry.ult) + " · " : ""}${formatDate(entry.time)}</div>
+          <div class="log-time">${entry.ult ? (entry.role || roleOf(entry.name, entry.ult)) + " " + ultLabel(entry.ult) + " · " : ""}${formatDate(entry.time)}</div>
         </div>
       </div>
       ${i === 0 ? '<div class="log-badge">최근</div>' : ''}
