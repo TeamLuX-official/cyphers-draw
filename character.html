@@ -466,7 +466,6 @@
       </div>
       <div class="preset-row">
         <button class="preset-btn" onclick="applyPreset('all')">완전 랜덤</button>
-        <button class="preset-btn" onclick="applyPreset('ratio')">근3 · 원2</button>
         <button class="preset-btn" onclick="applyPreset('standard')">표준 5역할</button>
       </div>
     </div>
@@ -474,7 +473,7 @@
     <div class="party-box">
       <h3>슬롯별 포지션</h3>
       <div class="slot-list" id="slotList"></div>
-      <div class="party-note">슬롯마다 전체 / 근거리 / 원거리 / 역할군을 자유롭게 지정</div>
+      <div class="party-note">슬롯마다 전체 또는 역할군을 자유롭게 지정</div>
     </div>
 
     <button id="party-btn" onclick="drawParty()">👥 파티 추첨</button>
@@ -519,18 +518,13 @@ const ROLES = {
   "아틸러리": ["드렉슬러","멜빈","미쉘","미아","샬럿","엘리","이사벨","클레어","타라","하랑"],
   "컨트롤러": ["까미유","드니스","리사","릭","마틴","시드니","앨리셔","에밀리","오데트","웨슬리","재뉴어리","주세페","캐럴","토마스","티샤","피터","헤나투"]
 };
-const MELEE_ROLES = ["뱅가드","스트라이커","스커미셔","리퍼"];
-const RANGED_ROLES = ["레인저","아틸러리","컨트롤러"];
-
 function unionOf(roleNames) {
   const set = new Set();
   roleNames.forEach(r => (ROLES[r] || []).forEach(n => set.add(n)));
   return ALL_CHARACTERS.filter(c => set.has(c));
 }
 function candidatesOf(filter) {
-  if (filter === "all") return [...ALL_CHARACTERS];
-  if (filter === "melee") return unionOf(MELEE_ROLES);
-  if (filter === "ranged") return unionOf(RANGED_ROLES);
+  if (filter === "all" || !ROLES[filter]) return [...ALL_CHARACTERS];
   return unionOf([filter]);
 }
 // 캐릭터가 속한 역할군 표시용
@@ -685,8 +679,6 @@ function switchTab(tab) {
 // ── 파티 추첨 ─────────────────────────────────────
 const FILTER_OPTIONS = [
   { v: "all", t: "전체" },
-  { v: "melee", t: "근거리" },
-  { v: "ranged", t: "원거리" },
   ...Object.keys(ROLES).map(r => ({ v: r, t: r }))
 ];
 let partySize = 5;
@@ -701,7 +693,8 @@ function loadPartySetup() {
     const s = JSON.parse(localStorage.getItem(PARTY_KEY));
     if (s && s.size >= 1 && s.size <= 5 && Array.isArray(s.filters)) {
       partySize = s.size;
-      slotFilters = s.filters.slice(0, 5);
+      // 삭제된 근거리/원거리 등 유효하지 않은 값은 '전체'로 정리
+      slotFilters = s.filters.slice(0, 5).map(f => (f === "all" || ROLES[f]) ? f : "all");
       while (slotFilters.length < 5) slotFilters.push("all");
     }
   } catch {}
@@ -719,9 +712,6 @@ function applyPreset(kind) {
   if (partyDrawing) return;
   if (kind === "all") {
     slotFilters = ["all", "all", "all", "all", "all"];
-  } else if (kind === "ratio") {
-    slotFilters = ["melee", "melee", "melee", "ranged", "ranged"];
-    setPartySize(5);
   } else if (kind === "standard") {
     slotFilters = ["뱅가드", "스트라이커", "리퍼", "아틸러리", "컨트롤러"];
     setPartySize(5);
