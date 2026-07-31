@@ -166,29 +166,41 @@
       background: #0d0a06;
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 40px 24px;
+      padding: 20px 16px;
       text-align: center;
       margin-bottom: 20px;
-      min-height: 180px;
+      height: 190px; /* 추첨 중·결과·대기 상태에서 높이가 흔들리지 않도록 고정 */
+      overflow: hidden;
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
       box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
     }
     #result-box .idle-icon { font-size: 40px; margin-bottom: 12px; }
     #result-box .idle-text { color: var(--text-dim); font-size: 15px; }
-    #result-box .draw-label { font-size: 13px; color: var(--text-dim); margin-bottom: 12px; letter-spacing: 2px; }
-    #result-box .draw-name {
-      font-family: var(--font-title); font-weight: 500;
-      font-size: 40px; color: var(--text); letter-spacing: 2px;
+    /* 추첨 중 / 결과 상태의 3단 구조(라벨·이름·시각)를 동일하게 맞춤 */
+    #result-box .draw-label,
+    #result-box .result-label {
+      font-size: 13px; letter-spacing: 2px;
+      height: 20px; line-height: 20px;
+      max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
-    #result-box .result-label { font-size: 13px; color: var(--gold-dim); margin-bottom: 10px; letter-spacing: 2px; }
+    #result-box .draw-label { color: var(--text-dim); }
+    #result-box .result-label { color: var(--gold-dim); }
+    #result-box .draw-name,
     #result-box .result-name {
-      font-family: var(--font-title); font-weight: 700;
-      font-size: 48px; color: var(--gold); letter-spacing: 3px;
+      font-family: var(--font-title);
+      font-size: 46px; letter-spacing: 3px;
+      height: 66px; line-height: 66px;
+      max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    #result-box .draw-name { font-weight: 500; color: var(--text); }
+    #result-box .result-name {
+      font-weight: 700; color: var(--gold);
       text-shadow: 0 0 26px rgba(245, 196, 81, .55);
       animation: pop .35s ease;
     }
-    #result-box .result-time { font-size: 13px; color: var(--text-dim); margin-top: 12px; }
+    #result-box .result-time,
+    #result-box .draw-time { font-size: 13px; color: var(--text-dim); height: 18px; line-height: 18px; }
     #result-box .done-icon { font-size: 40px; margin-bottom: 12px; }
     #result-box .done-title { font-family: var(--font-title); font-weight: 700; font-size: 22px; color: var(--gold); }
     #result-box .done-sub { font-size: 14px; color: var(--text-dim); margin-top: 8px; }
@@ -337,6 +349,7 @@
       padding: 12px;
       margin-bottom: 16px;
     }
+    #roleResetBtn { width: 100%; margin-top: 8px; }
     #roleSelect {
       width: 100%; margin-top: 8px;
       padding: 10px 12px; border-radius: 6px;
@@ -375,7 +388,8 @@
       font-family: inherit; font-size: 12px; cursor: pointer; transition: all .15s;
       white-space: nowrap;
     }
-    .preset-btn:hover { border-color: var(--gold); color: var(--gold); }
+    .preset-btn:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); }
+    .preset-btn:disabled { opacity: .4; cursor: not-allowed; }
 
     .slot-list { display: flex; flex-direction: column; gap: 8px; }
     .slot-row {
@@ -421,9 +435,9 @@
       #app { padding: 24px 12px 32px; }
       #header h1 { font-size: 32px; letter-spacing: 4px; }
       #header .label { font-size: 12px; letter-spacing: 4px; }
-      #result-box { padding: 32px 16px; min-height: 160px; }
-      #result-box .result-name { font-size: 38px; }
-      #result-box .draw-name { font-size: 32px; }
+      #result-box { padding: 18px 12px; height: 168px; }
+      #result-box .draw-name,
+      #result-box .result-name { font-size: 36px; height: 54px; line-height: 54px; letter-spacing: 2px; }
       #draw-btn { padding: 14px; font-size: 16px; }
       .tab-btn { padding: 8px 11px; font-size: 12px; letter-spacing: 0; }
       .btn-sub { margin-left: 6px; font-size: 11px; }
@@ -455,6 +469,7 @@
         <button class="size-btn" data-mode="role" onclick="setDrawMode('role')">포지션 추첨</button>
       </div>
       <select id="roleSelect" onchange="setDrawRole(this.value)" style="display:none;"></select>
+      <button class="preset-btn" id="roleResetBtn" onclick="resetRole()" style="display:none;"></button>
     </div>
 
     <div id="result-box">
@@ -614,6 +629,19 @@ function getModeRemaining() {
 let drawMode = "all";     // "all" 또는 역할군명
 const MODE_KEY = "cyphers-draw-mode";
 
+// 포지션 모드일 때만 역할군 선택·개별 초기화 버튼 노출
+function updateRoleUI() {
+  const isRole = drawMode !== "all";
+  const btn = document.getElementById("roleResetBtn");
+  document.getElementById("roleSelect").style.display = isRole ? "block" : "none";
+  btn.style.display = isRole ? "block" : "none";
+  if (isRole) {
+    const drawnHere = log.filter(e => ROLES[drawMode].includes(e.name)).length;
+    btn.textContent = `↺ ${drawMode} 기록만 초기화 (${drawnHere}건)`;
+    btn.disabled = drawnHere === 0;
+  }
+}
+
 function setDrawMode(kind) {
   if (animating) return;
   const sel = document.getElementById("roleSelect");
@@ -639,6 +667,22 @@ function setDrawRole(role) {
   render();
 }
 
+// 선택한 역할군에 속한 캐릭터의 추첨 기록만 삭제 (전체 초기화와 별개)
+function resetRole() {
+  if (animating || drawMode === "all") return;
+  const members = new Set(ROLES[drawMode]);
+  const targets = log.filter(e => members.has(e.name));
+  if (!targets.length) { alert(`${drawMode} 역할군에서 추첨된 기록이 없습니다.`); return; }
+  if (!confirm(`${drawMode} 역할군의 추첨 기록 ${targets.length}건을 초기화할까요?\n(다른 역할군 기록은 그대로 유지됩니다)`)) return;
+  log = log.filter(e => !members.has(e.name));
+  saveLog();
+  document.getElementById("result-box").innerHTML = `
+    <div class="idle-icon">🎲</div>
+    <div class="idle-text">${drawMode} 기록을 초기화했습니다</div>
+  `;
+  render();
+}
+
 function initModeUI() {
   const sel = document.getElementById("roleSelect");
   sel.innerHTML = Object.keys(ROLES).map(r =>
@@ -646,7 +690,7 @@ function initModeUI() {
   let saved = "all";
   try { saved = localStorage.getItem(MODE_KEY) || "all"; } catch {}
   drawMode = ROLES[saved] ? saved : "all";
-  if (drawMode !== "all") { sel.value = drawMode; sel.style.display = "block"; }
+  if (drawMode !== "all") sel.value = drawMode;
   document.querySelectorAll(".mode-box .size-btn").forEach(b =>
     b.classList.toggle("active", (b.dataset.mode === "all") === (drawMode === "all")));
 }
@@ -662,7 +706,7 @@ function draw() {
   animating = true;
   document.getElementById("draw-btn").disabled = true;
   const box = document.getElementById("result-box");
-  box.innerHTML = `<div class="draw-label">추첨 중...</div><div class="draw-name animating" id="rolling-name"></div>`;
+  box.innerHTML = `<div class="draw-label">추첨 중...</div><div class="draw-name animating" id="rolling-name"></div><div class="draw-time">&nbsp;</div>`;
   let count = 0;
   const totalFrames = 24;
   const interval = setInterval(() => {
@@ -905,6 +949,7 @@ function render() {
 
   document.getElementById("reset-btn").disabled = log.length === 0;
   document.getElementById("reset-btn2").disabled = log.length === 0;
+  updateRoleUI();
   if (currentTab === "log") renderLog();
 }
 
