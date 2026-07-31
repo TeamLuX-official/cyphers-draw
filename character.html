@@ -169,7 +169,7 @@
       padding: 20px 16px;
       text-align: center;
       margin-bottom: 20px;
-      height: 190px; /* 추첨 중·결과·대기 상태에서 높이가 흔들리지 않도록 고정 */
+      height: 200px; /* 추첨 중·결과·대기 상태에서 높이가 흔들리지 않도록 고정 */
       overflow: hidden;
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
@@ -190,7 +190,8 @@
     #result-box .result-name {
       font-family: var(--font-title);
       font-size: 46px; letter-spacing: 3px;
-      height: 66px; line-height: 66px;
+      /* 폰트별 글자 높이 차이로 아래 배지와 겹치지 않도록 줄 높이를 넉넉히 */
+      height: 62px; line-height: 62px;
       max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     #result-box .draw-name { font-weight: 500; color: var(--text); }
@@ -210,7 +211,11 @@
     #result-box .result-time,
     #result-box .draw-time { font-size: 13px; color: var(--text-dim); height: 18px; line-height: 18px; }
     /* 캐릭터 이름 아래 1st / 2nd 배지 (자리를 항상 차지해 높이 고정) */
-    #result-box .ult-row { height: 22px; line-height: 22px; margin-top: 2px; }
+    #result-box .ult-row {
+      height: 24px; line-height: 24px; margin-top: 10px;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      flex-wrap: nowrap; overflow: hidden;
+    }
     .ult-badge {
       animation: pop .3s ease;
       display: inline-block; padding: 2px 9px;
@@ -460,9 +465,11 @@
       #app { padding: 24px 12px 32px; }
       #header h1 { font-size: 32px; letter-spacing: 4px; }
       #header .label { font-size: 12px; letter-spacing: 4px; }
-      #result-box { padding: 18px 12px; height: 168px; }
+      #result-box { padding: 16px 10px; height: 182px; }
       #result-box .draw-name,
-      #result-box .result-name { font-size: 36px; height: 54px; line-height: 54px; letter-spacing: 2px; }
+      #result-box .result-name { font-size: 34px; height: 50px; line-height: 50px; letter-spacing: 2px; }
+      #result-box .ult-row { height: 22px; line-height: 22px; margin-top: 8px; gap: 4px; }
+      .ult-badge { font-size: 10px; padding: 2px 7px; }
       #draw-btn { padding: 14px; font-size: 16px; }
       .tab-btn { padding: 8px 11px; font-size: 12px; letter-spacing: 0; }
       .btn-sub { margin-left: 6px; font-size: 11px; }
@@ -782,16 +789,22 @@ function draw() {
 
 // ── 결과 표시 ─────────────────────────────────────
 function showResult(name, time, role, ult) {
-  // 포지션 추첨이면 역할군만 라벨에, 궁(1st/2nd)은 이름 아래 배지로 표시
-  const roleText = role
-    ? ` · ${role}`
-    : (rolesOf(name).length ? ` · ${rolesOf(name).join(" / ")}` : "");
-  const badge = ult ? `<span class="ult-badge">${ultLabel(ult)}</span>` : "&nbsp;";
-  document.getElementById("result-box").classList.add("has-result");
-  document.getElementById("result-box").innerHTML = `
-    <div class="result-label">#${log.length} 추첨 결과${roleText}</div>
+  // 역할군·궁 정보는 라벨 텍스트가 아니라 이름 아래 배지로만 표시
+  let label = `#${log.length} 추첨 결과`;
+  let badges;
+  if (role) {
+    label += ` · ${role}`;
+    badges = `<span class="ult-badge">${ultLabel(ult)}</span>`;
+  } else {
+    // 완전 랜덤: 그 캐릭터가 가진 역할군을 궁별 배지로 (예: 컨트롤러 1st · 컨트롤러 2nd)
+    badges = rolesOf(name).map(t => `<span class="ult-badge">${t}</span>`).join("");
+  }
+  const box = document.getElementById("result-box");
+  box.classList.add("has-result");
+  box.innerHTML = `
+    <div class="result-label">${label}</div>
     <div class="result-name">${name}</div>
-    <div class="ult-row">${badge}</div>
+    <div class="ult-row">${badges || "&nbsp;"}</div>
     <div class="result-time">${formatDate(time)}</div>
   `;
 }
