@@ -147,7 +147,7 @@
     #header .subtitle span { color: var(--gold); font-weight: 700; }
 
     /* 탭 */
-    #tabs { display: flex; gap: 6px; margin-bottom: 22px; }
+    #tabs { display: flex; gap: 6px; margin-bottom: 22px; flex-wrap: wrap; justify-content: center; }
     .tab-btn {
       padding: 9px 24px; border-radius: 6px;
       cursor: pointer; font-weight: 700; font-size: 14px;
@@ -248,6 +248,15 @@
     #draw-btn:disabled {
       filter: grayscale(.7) brightness(.55);
       box-shadow: none; cursor: not-allowed;
+    }
+    .btn-sub {
+      display: inline-block;
+      margin-left: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      opacity: .7;
+      vertical-align: middle;
     }
     #reset-btn, #reset-btn2 {
       width: 100%; margin-top: 12px; padding: 12px;
@@ -416,7 +425,8 @@
       #result-box .result-name { font-size: 38px; }
       #result-box .draw-name { font-size: 32px; }
       #draw-btn { padding: 14px; font-size: 16px; }
-      .tab-btn { padding: 8px 18px; font-size: 13px; }
+      .tab-btn { padding: 8px 11px; font-size: 12px; letter-spacing: 0; }
+      .btn-sub { margin-left: 6px; font-size: 11px; }
       #clock { font-size: 13px; gap: 7px; padding: 9px 12px; }
       .log-name { font-size: 16px; }
     }
@@ -432,8 +442,8 @@
   </div>
 
   <div id="tabs">
-    <button class="tab-btn active" data-tab="main" onclick="switchTab('main')">🎲 추첨</button>
-    <button class="tab-btn" data-tab="party" onclick="switchTab('party')">👥 파티</button>
+    <button class="tab-btn active" data-tab="main" onclick="switchTab('main')">🎲 개인 추첨</button>
+    <button class="tab-btn" data-tab="party" onclick="switchTab('party')">👥 파티 추첨</button>
     <button class="tab-btn" data-tab="log" id="log-tab-btn" onclick="switchTab('log')">📋 기록 (0)</button>
   </div>
 
@@ -885,12 +895,12 @@ function render() {
     `;
   } else if (modeLeft === 0) {
     drawBtn.disabled = true;
-    drawBtn.textContent = `${drawMode} 추첨 완료 (남은 후보 없음)`;
+    drawBtn.innerHTML = `🎲 ${drawMode} 추첨<span class="btn-sub">남은 캐릭터 없음</span>`;
   } else {
     drawBtn.disabled = false;
-    drawBtn.textContent = drawMode === "all"
+    drawBtn.innerHTML = drawMode === "all"
       ? `🎲 추첨하기 (${log.length + 1}번째)`
-      : `🎲 ${drawMode} 추첨 (남은 ${modeLeft}명)`;
+      : `🎲 ${drawMode} 추첨<span class="btn-sub">남은 캐릭터 ${modeLeft}명</span>`;
   }
 
   document.getElementById("reset-btn").disabled = log.length === 0;
