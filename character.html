@@ -201,6 +201,15 @@
     }
     #result-box .result-time,
     #result-box .draw-time { font-size: 13px; color: var(--text-dim); height: 18px; line-height: 18px; }
+    /* 캐릭터 이름 아래 1st / 2nd 배지 (자리를 항상 차지해 높이 고정) */
+    #result-box .ult-row { height: 22px; line-height: 22px; margin-top: 2px; }
+    .ult-badge {
+      display: inline-block; padding: 2px 9px;
+      border-radius: 999px; border: 1px solid var(--border-hi);
+      background: #2e2410; color: var(--gold-dim);
+      font-family: var(--font-body); font-size: 11px; font-weight: 700;
+      letter-spacing: 1px; vertical-align: middle; text-shadow: none;
+    }
     #result-box .done-icon { font-size: 40px; margin-bottom: 12px; }
     #result-box .done-title { font-family: var(--font-title); font-weight: 700; font-size: 22px; color: var(--gold); }
     #result-box .done-sub { font-size: 14px; color: var(--text-dim); margin-top: 8px; }
@@ -588,18 +597,18 @@ function parseEntry(raw) {
 const ROLES = {};
 Object.keys(ROLE_DATA).forEach(r => { ROLES[r] = ROLE_DATA[r].map(parseEntry); });
 
-function ultLabel(ult) { return ult === 2 ? "2차궁" : "1차궁"; }
+function ultLabel(ult) { return ult === 2 ? "2nd" : "1st"; }
 
 function candidatesOf(filter) {
   // 완전 랜덤은 궁 구분 없이 캐릭터 단위
   if (filter === "all" || !ROLES[filter]) return ALL_CHARACTERS.map(c => ({ base: c, ult: 0 }));
   return ROLES[filter];
 }
-// 캐릭터가 속한 역할군 표시용 (예: "뱅가드 2차궁 / 스트라이커 1차궁")
+// 캐릭터가 속한 역할군 표시용 (예: "뱅가드 2nd / 스트라이커 1st")
 function rolesOf(name) {
   const out = [];
   Object.keys(ROLES).forEach(r => {
-    ROLES[r].forEach(e => { if (e.base === name) out.push(r + " " + ultLabel(e.ult)); });
+    ROLES[r].forEach(e => { if (e.base === name) out.push(r + " " + ultLabel(e.ult)); });  // 예: "뱅가드 2nd"
   });
   return out;
 }
@@ -732,12 +741,18 @@ function draw() {
   animating = true;
   document.getElementById("draw-btn").disabled = true;
   const box = document.getElementById("result-box");
-  box.innerHTML = `<div class="draw-label">추첨 중...</div><div class="draw-name animating" id="rolling-name"></div><div class="draw-time">&nbsp;</div>`;
+  box.innerHTML = `<div class="draw-label">추첨 중...</div>` +
+    `<div class="draw-name animating" id="rolling-name"></div>` +
+    `<div class="ult-row" id="rolling-ult">&nbsp;</div>` +
+    `<div class="draw-time">&nbsp;</div>`;
   let count = 0;
   const totalFrames = 24;
   const interval = setInterval(() => {
     const rnd = remaining[Math.floor(Math.random() * remaining.length)];
     document.getElementById("rolling-name").textContent = rnd.base;
+    // 배지도 처음부터 함께 롤링 (확정 순간에 툭 튀어나오지 않도록)
+    document.getElementById("rolling-ult").innerHTML =
+      rnd.ult ? `<span class="ult-badge">${ultLabel(rnd.ult)}</span>` : "&nbsp;";
     count++;
     if (count >= totalFrames) {
       clearInterval(interval);
@@ -755,13 +770,15 @@ function draw() {
 
 // ── 결과 표시 ─────────────────────────────────────
 function showResult(name, time, role, ult) {
-  // 포지션 추첨이면 해당 역할군·궁을, 완전 랜덤이면 그 캐릭터가 속한 역할군 전체를 표시
+  // 포지션 추첨이면 역할군만 라벨에, 궁(1st/2nd)은 이름 아래 배지로 표시
   const roleText = role
-    ? ` · ${role} ${ultLabel(ult)}`
+    ? ` · ${role}`
     : (rolesOf(name).length ? ` · ${rolesOf(name).join(" / ")}` : "");
+  const badge = ult ? `<span class="ult-badge">${ultLabel(ult)}</span>` : "&nbsp;";
   document.getElementById("result-box").innerHTML = `
     <div class="result-label">#${log.length} 추첨 결과${roleText}</div>
     <div class="result-name">${name}</div>
+    <div class="ult-row">${badge}</div>
     <div class="result-time">${formatDate(time)}</div>
   `;
 }
@@ -895,6 +912,13 @@ function renderSlots() {
   }
 }
 
+// 슬롯 표시: 이름 + 1st/2nd 배지 (전체 슬롯은 배지 없음)
+function slotHTML(entry) {
+  return entry.ult
+    ? `${entry.base}<span class="ult-tag">${ultLabel(entry.ult)}</span>`
+    : entry.base;
+}
+
 async function drawParty() {
   if (partyDrawing) return;
   // 조합이 가능한지 먼저 확인 (같은 역할군을 인원보다 많이 지정한 경우 등)
@@ -927,15 +951,13 @@ async function drawParty() {
       function step() {
         const t = Date.now() - start;
         if (t >= dur) {
-          // 포지션 지정 슬롯이면 어떤 궁인지 함께 표시
-          el.innerHTML = plan[i].ult
-            ? `${plan[i].base}<span class="ult-tag">${ultLabel(plan[i].ult)}</span>`
-            : plan[i].base;
+          el.innerHTML = slotHTML(plan[i]);
           el.classList.add("done");
           resolve();
           return;
         }
-        el.textContent = pool[Math.floor(Math.random() * pool.length)].base;
+        // 롤링 중에도 배지를 함께 표시 (마지막에 갑자기 붙지 않도록)
+        el.innerHTML = slotHTML(pool[Math.floor(Math.random() * pool.length)]);
         setTimeout(step, 50 + 170 * Math.pow(t / dur, 2));
       }
       step();
