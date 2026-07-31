@@ -196,14 +196,23 @@
     #result-box .draw-name { font-weight: 500; color: var(--text); }
     #result-box .result-name {
       font-weight: 700; color: var(--gold);
-      text-shadow: 0 0 26px rgba(245, 196, 81, .55);
-      animation: pop .35s ease;
+      /* 큰 글자에 text-shadow 글로우를 주면 일부 환경(고배율·GPU 합성)에서 글자 뒤에
+         검은 박스가 찍히므로, 글로우는 결과 박스 쪽으로 옮김 */
+      text-shadow: none;
+      background: none;
+      -webkit-font-smoothing: antialiased;
+    }
+    /* 결과가 나왔을 때 박스 자체를 은은하게 발광 */
+    #result-box.has-result {
+      border-color: var(--border-hi);
+      box-shadow: inset 0 0 46px rgba(245, 196, 81, .13), 0 0 22px rgba(245, 196, 81, .10);
     }
     #result-box .result-time,
     #result-box .draw-time { font-size: 13px; color: var(--text-dim); height: 18px; line-height: 18px; }
     /* 캐릭터 이름 아래 1st / 2nd 배지 (자리를 항상 차지해 높이 고정) */
     #result-box .ult-row { height: 22px; line-height: 22px; margin-top: 2px; }
     .ult-badge {
+      animation: pop .3s ease;
       display: inline-block; padding: 2px 9px;
       border-radius: 999px; border: 1px solid var(--border-hi);
       background: #2e2410; color: var(--gold-dim);
@@ -711,7 +720,9 @@ function resetRole() {
   if (!confirm(`${drawMode} 역할군의 추첨 기록 ${targets.length}건을 초기화할까요?\n(다른 역할군 기록은 그대로 유지됩니다)`)) return;
   log = log.filter(e => !members.has(e.name));
   saveLog();
-  document.getElementById("result-box").innerHTML = `
+  const box = document.getElementById("result-box");
+  box.classList.remove("has-result");
+  box.innerHTML = `
     <div class="idle-icon">🎲</div>
     <div class="idle-text">${drawMode} 기록을 초기화했습니다</div>
   `;
@@ -741,6 +752,7 @@ function draw() {
   animating = true;
   document.getElementById("draw-btn").disabled = true;
   const box = document.getElementById("result-box");
+  box.classList.remove("has-result");
   box.innerHTML = `<div class="draw-label">추첨 중...</div>` +
     `<div class="draw-name animating" id="rolling-name"></div>` +
     `<div class="ult-row" id="rolling-ult">&nbsp;</div>` +
@@ -775,6 +787,7 @@ function showResult(name, time, role, ult) {
     ? ` · ${role}`
     : (rolesOf(name).length ? ` · ${rolesOf(name).join(" / ")}` : "");
   const badge = ult ? `<span class="ult-badge">${ultLabel(ult)}</span>` : "&nbsp;";
+  document.getElementById("result-box").classList.add("has-result");
   document.getElementById("result-box").innerHTML = `
     <div class="result-label">#${log.length} 추첨 결과${roleText}</div>
     <div class="result-name">${name}</div>
@@ -838,7 +851,9 @@ function resetAll() {
   if (!confirm("모든 추첨 기록을 초기화할까요? (기록 저장으로 백업 후 진행을 권장합니다)")) return;
   log = [];
   try { localStorage.removeItem(STORAGE_KEY); } catch {}
-  document.getElementById("result-box").innerHTML = `
+  const box = document.getElementById("result-box");
+  box.classList.remove("has-result");
+  box.innerHTML = `
     <div class="idle-icon">🎲</div>
     <div class="idle-text">버튼을 눌러 추첨을 시작하세요</div>
   `;
