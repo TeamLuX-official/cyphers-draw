@@ -320,6 +320,21 @@
       padding: 3px 10px; border-radius: 999px; white-space: nowrap;
     }
 
+    /* ── 추첨 모드 ── */
+    .mode-box {
+      background: linear-gradient(180deg, var(--panel2), var(--panel));
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 16px;
+    }
+    #roleSelect {
+      width: 100%; margin-top: 8px;
+      padding: 10px 12px; border-radius: 6px;
+      background: #0d0a06; border: 1px solid var(--border-hi); color: var(--gold);
+      font-family: inherit; font-size: 14px; font-weight: 600; outline: none; cursor: pointer;
+    }
+
     /* ── 파티 추첨 ── */
     .party-box {
       background: linear-gradient(180deg, var(--panel2), var(--panel));
@@ -420,6 +435,14 @@
 
   <!-- 추첨 패널 -->
   <div class="panel active" id="panel-main">
+    <div class="mode-box">
+      <div class="size-row">
+        <button class="size-btn active" data-mode="all" onclick="setDrawMode('all')">완전 랜덤</button>
+        <button class="size-btn" data-mode="role" onclick="setDrawMode('role')">포지션 추첨</button>
+      </div>
+      <select id="roleSelect" onchange="setDrawRole(this.value)" style="display:none;"></select>
+    </div>
+
     <div id="result-box">
       <div class="idle-icon">🎲</div>
       <div class="idle-text">버튼을 눌러 추첨을 시작하세요</div>
@@ -458,15 +481,13 @@
     <div class="party-box">
       <h3>파티 인원</h3>
       <div class="size-row" id="sizeRow">
-        <button class="size-btn" data-size="1" onclick="setPartySize(1)">1인</button>
         <button class="size-btn" data-size="2" onclick="setPartySize(2)">2인</button>
         <button class="size-btn" data-size="3" onclick="setPartySize(3)">3인</button>
         <button class="size-btn" data-size="4" onclick="setPartySize(4)">4인</button>
         <button class="size-btn active" data-size="5" onclick="setPartySize(5)">5인</button>
       </div>
       <div class="preset-row">
-        <button class="preset-btn" onclick="applyPreset('all')">완전 랜덤</button>
-        <button class="preset-btn" onclick="applyPreset('standard')">표준 5역할</button>
+        <button class="preset-btn" onclick="applyPreset('all')">전체 슬롯 초기화</button>
       </div>
     </div>
 
@@ -547,6 +568,7 @@ function init() {
     if (stored) log = JSON.parse(stored);
   } catch {}
   document.getElementById("total-count").textContent = TOTAL;
+  initModeUI();
   loadPartySetup();
   document.querySelectorAll(".size-btn").forEach(b => b.classList.toggle("active", +b.dataset.size === partySize));
   renderSlots();
@@ -568,12 +590,61 @@ function getRemaining() {
   const drawn = new Set(log.map(e => e.name));
   return ALL_CHARACTERS.filter(c => !drawn.has(c));
 }
+// 현재 추첨 모드(전체 / 특정 역할군) 기준 후보
+function getModeRemaining() {
+  const drawn = new Set(log.map(e => e.name));
+  return candidatesOf(drawMode).filter(c => !drawn.has(c));
+}
+
+// ── 추첨 모드 (완전 랜덤 / 포지션) ────────────────
+let drawMode = "all";     // "all" 또는 역할군명
+const MODE_KEY = "cyphers-draw-mode";
+
+function setDrawMode(kind) {
+  if (animating) return;
+  const sel = document.getElementById("roleSelect");
+  if (kind === "all") {
+    drawMode = "all";
+    sel.style.display = "none";
+  } else {
+    // 포지션 모드: 마지막에 고른 역할군 유지, 없으면 첫 번째
+    drawMode = ROLES[drawMode] ? drawMode : Object.keys(ROLES)[0];
+    sel.value = drawMode;
+    sel.style.display = "block";
+  }
+  document.querySelectorAll(".mode-box .size-btn").forEach(b =>
+    b.classList.toggle("active", (b.dataset.mode === "all") === (drawMode === "all")));
+  try { localStorage.setItem(MODE_KEY, drawMode); } catch {}
+  render();
+}
+
+function setDrawRole(role) {
+  if (animating) return;
+  drawMode = role;
+  try { localStorage.setItem(MODE_KEY, drawMode); } catch {}
+  render();
+}
+
+function initModeUI() {
+  const sel = document.getElementById("roleSelect");
+  sel.innerHTML = Object.keys(ROLES).map(r =>
+    `<option value="${r}">${r} (${ROLES[r].length}명)</option>`).join("");
+  let saved = "all";
+  try { saved = localStorage.getItem(MODE_KEY) || "all"; } catch {}
+  drawMode = ROLES[saved] ? saved : "all";
+  if (drawMode !== "all") { sel.value = drawMode; sel.style.display = "block"; }
+  document.querySelectorAll(".mode-box .size-btn").forEach(b =>
+    b.classList.toggle("active", (b.dataset.mode === "all") === (drawMode === "all")));
+}
 
 // ── 추첨 ──────────────────────────────────────────
 function draw() {
   if (animating) return;
-  const remaining = getRemaining();
-  if (remaining.length === 0) return;
+  const remaining = getModeRemaining();
+  if (remaining.length === 0) {
+    if (drawMode !== "all") alert(`${drawMode} 역할군의 캐릭터를 모두 추첨했습니다.`);
+    return;
+  }
   animating = true;
   document.getElementById("draw-btn").disabled = true;
   const box = document.getElementById("result-box");
@@ -588,19 +659,21 @@ function draw() {
       clearInterval(interval);
       const pick = remaining[Math.floor(Math.random() * remaining.length)];
       const entry = { name: pick, time: new Date().toISOString() };
+      if (drawMode !== "all") entry.role = drawMode;
       log.push(entry);
       saveLog();
       animating = false;
       render();
-      showResult(pick, entry.time);
+      showResult(pick, entry.time, entry.role);
     }
   }, 60);
 }
 
 // ── 결과 표시 ─────────────────────────────────────
-function showResult(name, time) {
+function showResult(name, time, role) {
+  const roleText = role ? ` · ${role}` : (rolesOf(name).length ? ` · ${rolesOf(name).join(" / ")}` : "");
   document.getElementById("result-box").innerHTML = `
-    <div class="result-label">#${log.length} 추첨 결과</div>
+    <div class="result-label">#${log.length} 추첨 결과${roleText}</div>
     <div class="result-name">${name}</div>
     <div class="result-time">${formatDate(time)}</div>
   `;
@@ -632,7 +705,11 @@ function importLogFile(input) {
       const incoming = Array.isArray(data) ? data : data.log;
       if (!Array.isArray(incoming)) throw new Error("bad format");
       const valid = incoming.filter(e => e && typeof e.name === "string" && e.name)
-        .map(e => ({ name: e.name, time: e.time || new Date().toISOString() }));
+        .map(e => {
+          const item = { name: e.name, time: e.time || new Date().toISOString() };
+          if (e.role && ROLES[e.role]) item.role = e.role;
+          return item;
+        });
       if (!valid.length) { alert("파일에서 불러올 기록을 찾지 못했습니다."); return; }
       if (log.length && !confirm(`현재 기록 ${log.length}건을 파일의 기록 ${valid.length}건으로 교체할까요?`)) return;
       log = valid;
@@ -640,7 +717,7 @@ function importLogFile(input) {
       render();
       if (getRemaining().length > 0) {
         const last = log[log.length - 1];
-        showResult(last.name, last.time);
+        showResult(last.name, last.time, last.role);
       }
       alert(`기록 ${valid.length}건을 불러왔습니다.`);
     } catch (e) {
@@ -691,7 +768,7 @@ function savePartySetup() {
 function loadPartySetup() {
   try {
     const s = JSON.parse(localStorage.getItem(PARTY_KEY));
-    if (s && s.size >= 1 && s.size <= 5 && Array.isArray(s.filters)) {
+    if (s && s.size >= 2 && s.size <= 5 && Array.isArray(s.filters)) {
       partySize = s.size;
       // 삭제된 근거리/원거리 등 유효하지 않은 값은 '전체'로 정리
       slotFilters = s.filters.slice(0, 5).map(f => (f === "all" || ROLES[f]) ? f : "all");
@@ -710,12 +787,7 @@ function setPartySize(n) {
 
 function applyPreset(kind) {
   if (partyDrawing) return;
-  if (kind === "all") {
-    slotFilters = ["all", "all", "all", "all", "all"];
-  } else if (kind === "standard") {
-    slotFilters = ["뱅가드", "스트라이커", "리퍼", "아틸러리", "컨트롤러"];
-    setPartySize(5);
-  }
+  if (kind === "all") slotFilters = ["all", "all", "all", "all", "all"];
   renderSlots();
   savePartySetup();
 }
@@ -798,6 +870,7 @@ function render() {
   document.getElementById("progress-bar").style.width = pct + "%";
 
   const drawBtn = document.getElementById("draw-btn");
+  const modeLeft = getModeRemaining().length;
   if (allDone) {
     drawBtn.disabled = true;
     drawBtn.textContent = "모든 캐릭터 추첨 완료";
@@ -806,9 +879,14 @@ function render() {
       <div class="done-title">전체 추첨 완료!</div>
       <div class="done-sub">${TOTAL}명 모두 추첨되었습니다</div>
     `;
+  } else if (modeLeft === 0) {
+    drawBtn.disabled = true;
+    drawBtn.textContent = `${drawMode} 추첨 완료 (남은 후보 없음)`;
   } else {
     drawBtn.disabled = false;
-    drawBtn.textContent = `🎲 추첨하기 (${log.length + 1}번째)`;
+    drawBtn.textContent = drawMode === "all"
+      ? `🎲 추첨하기 (${log.length + 1}번째)`
+      : `🎲 ${drawMode} 추첨 (남은 ${modeLeft}명)`;
   }
 
   document.getElementById("reset-btn").disabled = log.length === 0;
@@ -832,7 +910,7 @@ function renderLog() {
         <div class="log-num ${i === 0 ? 'latest' : ''}">${log.length - i}</div>
         <div>
           <div class="log-name">${entry.name}</div>
-          <div class="log-time">${formatDate(entry.time)}</div>
+          <div class="log-time">${entry.role ? entry.role + " · " : ""}${formatDate(entry.time)}</div>
         </div>
       </div>
       ${i === 0 ? '<div class="log-badge">최근</div>' : ''}
