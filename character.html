@@ -632,6 +632,19 @@ function roleMembers(role) {
   return new Set((ROLES[role] || []).map(e => e.base));
 }
 
+// 캐릭터별로 존재하는 궁 목록 (예: 니콜라스 → [1, 2])
+const ULTS_BY_CHAR = {};
+Object.keys(ROLES).forEach(r => ROLES[r].forEach(e => {
+  const list = ULTS_BY_CHAR[e.base] = ULTS_BY_CHAR[e.base] || [];
+  if (!list.includes(e.ult)) list.push(e.ult);
+}));
+// 궁이 정해지지 않은 후보(전체 슬롯)에 궁을 무작위로 배정
+function resolveUlt(entry) {
+  if (entry.ult) return entry;
+  const list = ULTS_BY_CHAR[entry.base] || [1];
+  return { base: entry.base, ult: list[Math.floor(Math.random() * list.length)] };
+}
+
 const STORAGE_KEY = "cyphers-draw-log";
 const PARTY_KEY = "cyphers-party-setup";
 const TOTAL = ALL_CHARACTERS.length;
@@ -959,7 +972,8 @@ async function drawParty() {
       alert(`${i + 1}번 슬롯(${label})에 배정할 수 있는 캐릭터가 없습니다.\n포지션 구성을 조정해 주세요.`);
       return;
     }
-    const pick = pool[Math.floor(Math.random() * pool.length)];
+    // 전체 슬롯이면 캐릭터를 먼저 고르고 그 캐릭터가 가진 궁 중 하나를 배정
+    const pick = resolveUlt(pool[Math.floor(Math.random() * pool.length)]);
     picked.push(pick.base);
     plan.push(pick);
   }
@@ -985,7 +999,7 @@ async function drawParty() {
           return;
         }
         // 롤링 중에도 배지를 함께 표시 (마지막에 갑자기 붙지 않도록)
-        el.innerHTML = slotHTML(pool[Math.floor(Math.random() * pool.length)]);
+        el.innerHTML = slotHTML(resolveUlt(pool[Math.floor(Math.random() * pool.length)]));
         setTimeout(step, 50 + 170 * Math.pow(t / dur, 2));
       }
       step();
