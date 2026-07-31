@@ -418,6 +418,13 @@
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
     .slot-pick.done { color: var(--gold); text-shadow: 0 0 12px rgba(245,196,81,.45); animation: pop .3s ease; }
+    .ult-tag {
+      display: inline-block; margin-left: 7px; padding: 2px 7px;
+      border-radius: 999px; border: 1px solid var(--border-hi);
+      background: #2e2410; color: var(--gold-dim);
+      font-family: var(--font-body); font-size: 11px; font-weight: 700;
+      letter-spacing: 0; vertical-align: middle; text-shadow: none;
+    }
     .party-note { font-size: 11px; color: var(--text-dim); text-align: center; margin-top: 10px; letter-spacing: 1px; }
 
     /* 푸터 */
@@ -558,28 +565,46 @@ const ALL_CHARACTERS = [
   "주세페","루카","앤지 헌트","엔데카","오데트"
 ];
 
-// ── 2026U 시즌 역할군 (공식 매거진 기준, 2nd 버전은 본체로 통합) ──
-const ROLES = {
-  "뱅가드":   ["니콜라스","도일","디아나","라이언","레오노르","레이튼","리첼","린","브루스","숙희","아이작","에바","엔데카","제키엘","티모시","티엔","플로리안","휴톤"],
-  "스트라이커": ["그레타","니콜라스","디아나","레나","레베카","레이튼","로라스","리첼","벨져","스텔라","아이작","이글","제레온","케니스","티모시","티엔","플로리안"],
-  "스커미셔": ["다이무스","라이샌더","로라스","루드빅","벨져","시바","자네트","J","카로슈","카를로스","케니스","키아라","테이","트릭시","호타루"],
-  "리퍼":     ["그레타","다이무스","루이스","루카","이글","자네트","카로슈","카를로스","클리브","테이","히카르도"],
-  "레인저":   ["까미유","나이오비","드렉슬러","론","루시","마를렌","미쉘","바스티안","베로니카","빅터","샬럿","앤지 헌트","엘프리데","웨슬리","윌라드","카인","클레어","타라","탄야","트리비아","파수꾼 A","피터","하랑","헬레나"],
-  "아틸러리": ["드렉슬러","멜빈","미쉘","미아","샬럿","엘리","이사벨","클레어","타라","하랑"],
-  "컨트롤러": ["까미유","드니스","리사","릭","마틴","시드니","앨리셔","에밀리","오데트","웨슬리","재뉴어리","주세페","캐럴","토마스","티샤","피터","헤나투"]
+// ── 2026U 시즌 역할군 (공식 매거진 기준) ──
+// 이름만 있으면 1차궁, (2nd)가 붙으면 2차궁 — 같은 캐릭터도 궁에 따라 역할군이 다름
+const ROLE_DATA = {
+  "뱅가드":   ["니콜라스(2nd)","도일","도일(2nd)","디아나","라이언","레오노르","레오노르(2nd)","레이튼(2nd)","리첼","린","브루스","숙희","아이작","에바","엔데카","제키엘","제키엘(2nd)","티모시","티엔","플로리안","휴톤","휴톤(2nd)"],
+  "스트라이커": ["그레타(2nd)","니콜라스","디아나(2nd)","레나","레나(2nd)","레베카","레베카(2nd)","레이튼","로라스(2nd)","리첼(2nd)","벨져","스텔라","스텔라(2nd)","아이작(2nd)","이글","제레온","제레온(2nd)","케니스","티모시(2nd)","티엔(2nd)","플로리안(2nd)"],
+  "스커미셔": ["다이무스(2nd)","라이샌더","로라스","루드빅","벨져(2nd)","시바","자네트(2nd)","제이","카로슈","카를로스","케니스(2nd)","키아라","테이","트릭시","호타루","호타루(2nd)"],
+  "리퍼":     ["그레타","다이무스","루이스","루카","루카(2nd)","이글(2nd)","자네트","카로슈(2nd)","카를로스(2nd)","클리브","테이(2nd)","히카르도"],
+  "레인저":   ["까미유(2nd)","나이오비","나이오비(2nd)","드렉슬러(2nd)","론","론(2nd)","루시","루시(2nd)","마를렌","마를렌(2nd)","미쉘(2nd)","바스티안","베로니카","베로니카(2nd)","빅터","빅터(2nd)","샬럿(2nd)","앤지헌트","엘프리데","엘프리데(2nd)","웨슬리","윌라드","윌라드(2nd)","카인","카인(2nd)","클레어(2nd)","타라(2nd)","탄야","탄야(2nd)","트리비아","파수꾼A","피터","하랑(2nd)","헬레나","헬레나(2nd)"],
+  "아틸러리": ["드렉슬러","멜빈","미쉘","미아","미아(2nd)","샬럿","엘리","이사벨","클레어","타라","하랑"],
+  "컨트롤러": ["까미유","드니스","리사","리사(2nd)","릭","마틴","마틴(2nd)","시드니","시드니(2nd)","앨리셔","앨리셔(2nd)","에밀리","오데트","웨슬리(2nd)","재뉴어리","주세페","캐럴","토마스","토마스(2nd)","티샤","피터(2nd)","헤나투"]
 };
-function unionOf(roleNames) {
-  const set = new Set();
-  roleNames.forEach(r => (ROLES[r] || []).forEach(n => set.add(n)));
-  return ALL_CHARACTERS.filter(c => set.has(c));
+// 공식 표기와 추첨기 캐릭터 목록의 이름 차이 보정
+const NAME_FIX = { "제이": "J", "앤지헌트": "앤지 헌트", "파수꾼A": "파수꾼 A" };
+
+// "니콜라스(2nd)" → { base: "니콜라스", ult: 2 }
+function parseEntry(raw) {
+  const m = /^(.*?)\(2nd\)\s*$/.exec(raw);
+  const rawBase = (m ? m[1] : raw).trim();
+  return { base: NAME_FIX[rawBase] || rawBase, ult: m ? 2 : 1 };
 }
+const ROLES = {};
+Object.keys(ROLE_DATA).forEach(r => { ROLES[r] = ROLE_DATA[r].map(parseEntry); });
+
+function ultLabel(ult) { return ult === 2 ? "2차궁" : "1차궁"; }
+
 function candidatesOf(filter) {
-  if (filter === "all" || !ROLES[filter]) return [...ALL_CHARACTERS];
-  return unionOf([filter]);
+  // 완전 랜덤은 궁 구분 없이 캐릭터 단위
+  if (filter === "all" || !ROLES[filter]) return ALL_CHARACTERS.map(c => ({ base: c, ult: 0 }));
+  return ROLES[filter];
 }
-// 캐릭터가 속한 역할군 표시용
+// 캐릭터가 속한 역할군 표시용 (예: "뱅가드 2차궁 / 스트라이커 1차궁")
 function rolesOf(name) {
-  return Object.keys(ROLES).filter(r => ROLES[r].includes(name));
+  const out = [];
+  Object.keys(ROLES).forEach(r => {
+    ROLES[r].forEach(e => { if (e.base === name) out.push(r + " " + ultLabel(e.ult)); });
+  });
+  return out;
+}
+function roleMembers(role) {
+  return new Set((ROLES[role] || []).map(e => e.base));
 }
 
 const STORAGE_KEY = "cyphers-draw-log";
@@ -619,10 +644,10 @@ function getRemaining() {
   const drawn = new Set(log.map(e => e.name));
   return ALL_CHARACTERS.filter(c => !drawn.has(c));
 }
-// 현재 추첨 모드(전체 / 특정 역할군) 기준 후보
+// 현재 추첨 모드(전체 / 특정 역할군) 기준 후보 — 이미 뽑힌 캐릭터는 궁 상관없이 제외
 function getModeRemaining() {
   const drawn = new Set(log.map(e => e.name));
-  return candidatesOf(drawMode).filter(c => !drawn.has(c));
+  return candidatesOf(drawMode).filter(e => !drawn.has(e.base));
 }
 
 // ── 추첨 모드 (완전 랜덤 / 포지션) ────────────────
@@ -636,7 +661,8 @@ function updateRoleUI() {
   document.getElementById("roleSelect").style.display = isRole ? "block" : "none";
   btn.style.display = isRole ? "block" : "none";
   if (isRole) {
-    const drawnHere = log.filter(e => ROLES[drawMode].includes(e.name)).length;
+    const members = roleMembers(drawMode);
+    const drawnHere = log.filter(e => members.has(e.name)).length;
     btn.textContent = `↺ ${drawMode} 기록만 초기화 (${drawnHere}건)`;
     btn.disabled = drawnHere === 0;
   }
@@ -670,7 +696,7 @@ function setDrawRole(role) {
 // 선택한 역할군에 속한 캐릭터의 추첨 기록만 삭제 (전체 초기화와 별개)
 function resetRole() {
   if (animating || drawMode === "all") return;
-  const members = new Set(ROLES[drawMode]);
+  const members = roleMembers(drawMode);
   const targets = log.filter(e => members.has(e.name));
   if (!targets.length) { alert(`${drawMode} 역할군에서 추첨된 기록이 없습니다.`); return; }
   if (!confirm(`${drawMode} 역할군의 추첨 기록 ${targets.length}건을 초기화할까요?\n(다른 역할군 기록은 그대로 유지됩니다)`)) return;
@@ -686,7 +712,7 @@ function resetRole() {
 function initModeUI() {
   const sel = document.getElementById("roleSelect");
   sel.innerHTML = Object.keys(ROLES).map(r =>
-    `<option value="${r}">${r} (${ROLES[r].length}명)</option>`).join("");
+    `<option value="${r}">${r} (${ROLES[r].length}종)</option>`).join("");
   let saved = "all";
   try { saved = localStorage.getItem(MODE_KEY) || "all"; } catch {}
   drawMode = ROLES[saved] ? saved : "all";
@@ -711,25 +737,28 @@ function draw() {
   const totalFrames = 24;
   const interval = setInterval(() => {
     const rnd = remaining[Math.floor(Math.random() * remaining.length)];
-    document.getElementById("rolling-name").textContent = rnd;
+    document.getElementById("rolling-name").textContent = rnd.base;
     count++;
     if (count >= totalFrames) {
       clearInterval(interval);
       const pick = remaining[Math.floor(Math.random() * remaining.length)];
-      const entry = { name: pick, time: new Date().toISOString() };
-      if (drawMode !== "all") entry.role = drawMode;
+      const entry = { name: pick.base, time: new Date().toISOString() };
+      if (drawMode !== "all") { entry.role = drawMode; entry.ult = pick.ult; }
       log.push(entry);
       saveLog();
       animating = false;
       render();
-      showResult(pick, entry.time, entry.role);
+      showResult(entry.name, entry.time, entry.role, entry.ult);
     }
   }, 60);
 }
 
 // ── 결과 표시 ─────────────────────────────────────
-function showResult(name, time, role) {
-  const roleText = role ? ` · ${role}` : (rolesOf(name).length ? ` · ${rolesOf(name).join(" / ")}` : "");
+function showResult(name, time, role, ult) {
+  // 포지션 추첨이면 해당 역할군·궁을, 완전 랜덤이면 그 캐릭터가 속한 역할군 전체를 표시
+  const roleText = role
+    ? ` · ${role} ${ultLabel(ult)}`
+    : (rolesOf(name).length ? ` · ${rolesOf(name).join(" / ")}` : "");
   document.getElementById("result-box").innerHTML = `
     <div class="result-label">#${log.length} 추첨 결과${roleText}</div>
     <div class="result-name">${name}</div>
@@ -765,7 +794,7 @@ function importLogFile(input) {
       const valid = incoming.filter(e => e && typeof e.name === "string" && e.name)
         .map(e => {
           const item = { name: e.name, time: e.time || new Date().toISOString() };
-          if (e.role && ROLES[e.role]) item.role = e.role;
+          if (e.role && ROLES[e.role]) { item.role = e.role; item.ult = (e.ult === 2 ? 2 : 1); }
           return item;
         });
       if (!valid.length) { alert("파일에서 불러올 기록을 찾지 못했습니다."); return; }
@@ -775,7 +804,7 @@ function importLogFile(input) {
       render();
       if (getRemaining().length > 0) {
         const last = log[log.length - 1];
-        showResult(last.name, last.time, last.role);
+        showResult(last.name, last.time, last.role, last.ult);
       }
       alert(`기록 ${valid.length}건을 불러왔습니다.`);
     } catch (e) {
@@ -869,17 +898,17 @@ function renderSlots() {
 async function drawParty() {
   if (partyDrawing) return;
   // 조합이 가능한지 먼저 확인 (같은 역할군을 인원보다 많이 지정한 경우 등)
-  const picked = [];
+  const picked = [];  // 같은 캐릭터는 궁이 달라도 파티 내 중복 불가
   const plan = [];
   for (let i = 0; i < partySize; i++) {
-    const pool = candidatesOf(slotFilters[i]).filter(c => !picked.includes(c));
+    const pool = candidatesOf(slotFilters[i]).filter(e => !picked.includes(e.base));
     if (!pool.length) {
       const label = FILTER_OPTIONS.find(o => o.v === slotFilters[i]).t;
       alert(`${i + 1}번 슬롯(${label})에 배정할 수 있는 캐릭터가 없습니다.\n포지션 구성을 조정해 주세요.`);
       return;
     }
     const pick = pool[Math.floor(Math.random() * pool.length)];
-    picked.push(pick);
+    picked.push(pick.base);
     plan.push(pick);
   }
 
@@ -898,12 +927,15 @@ async function drawParty() {
       function step() {
         const t = Date.now() - start;
         if (t >= dur) {
-          el.textContent = plan[i];
+          // 포지션 지정 슬롯이면 어떤 궁인지 함께 표시
+          el.innerHTML = plan[i].ult
+            ? `${plan[i].base}<span class="ult-tag">${ultLabel(plan[i].ult)}</span>`
+            : plan[i].base;
           el.classList.add("done");
           resolve();
           return;
         }
-        el.textContent = pool[Math.floor(Math.random() * pool.length)];
+        el.textContent = pool[Math.floor(Math.random() * pool.length)].base;
         setTimeout(step, 50 + 170 * Math.pow(t / dur, 2));
       }
       step();
@@ -969,7 +1001,7 @@ function renderLog() {
         <div class="log-num ${i === 0 ? 'latest' : ''}">${log.length - i}</div>
         <div>
           <div class="log-name">${entry.name}</div>
-          <div class="log-time">${entry.role ? entry.role + " · " : ""}${formatDate(entry.time)}</div>
+          <div class="log-time">${entry.role ? entry.role + " " + ultLabel(entry.ult) + " · " : ""}${formatDate(entry.time)}</div>
         </div>
       </div>
       ${i === 0 ? '<div class="log-badge">최근</div>' : ''}
