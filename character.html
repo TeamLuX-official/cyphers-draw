@@ -259,6 +259,18 @@
     #reset-btn:hover:not(:disabled), #reset-btn2:hover:not(:disabled) { filter: brightness(1.25); }
     #reset-btn:disabled, #reset-btn2:disabled { opacity: .35; cursor: not-allowed; }
     #reset-btn2 { margin-top: 16px; }
+    #party-btn {
+      width: 100%; padding: 17px; border-radius: 8px;
+      cursor: pointer; font-size: 18px; font-weight: 800;
+      letter-spacing: 2px; transition: all 0.15s;
+      background: linear-gradient(180deg, #ffe08a, #d5a437);
+      border: 2px solid var(--gold); color: #1a1206;
+      box-shadow: 0 0 24px rgba(245,196,81,.25), 0 4px 12px rgba(0,0,0,.5);
+      font-family: inherit; white-space: nowrap;
+    }
+    #party-btn:hover:not(:disabled) { filter: brightness(1.08); box-shadow: 0 0 32px rgba(245,196,81,.4); }
+    #party-btn:active:not(:disabled) { transform: translateY(1px); }
+    #party-btn:disabled { filter: grayscale(.7) brightness(.55); cursor: not-allowed; }
 
     /* 기록 저장/불러오기 */
     .log-actions { display: flex; gap: 8px; margin-bottom: 12px; }
@@ -308,6 +320,64 @@
       padding: 3px 10px; border-radius: 999px; white-space: nowrap;
     }
 
+    /* ── 파티 추첨 ── */
+    .party-box {
+      background: linear-gradient(180deg, var(--panel2), var(--panel));
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 14px;
+      margin-bottom: 16px;
+    }
+    .party-box h3 {
+      font-size: 12px; color: var(--text-dim); letter-spacing: 2px;
+      margin-bottom: 10px; font-weight: 600;
+    }
+    .size-row { display: flex; gap: 6px; }
+    .size-btn {
+      flex: 1; padding: 10px 0; border-radius: 6px;
+      background: #0d0a06; border: 1px solid var(--border); color: var(--text-dim);
+      font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
+      transition: all .15s; white-space: nowrap;
+    }
+    .size-btn.active { background: #2e2410; border-color: var(--gold); color: var(--gold); }
+    .preset-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+    .preset-btn {
+      flex: 1 1 auto; padding: 8px 10px; border-radius: 6px;
+      background: #0d0a06; border: 1px solid var(--border); color: var(--text-dim);
+      font-family: inherit; font-size: 12px; cursor: pointer; transition: all .15s;
+      white-space: nowrap;
+    }
+    .preset-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+    .slot-list { display: flex; flex-direction: column; gap: 8px; }
+    .slot-row {
+      display: flex; align-items: center; gap: 10px;
+      background: #0d0a06; border: 1px solid var(--border);
+      border-left: 3px solid var(--border-hi);
+      border-radius: 6px; padding: 10px 12px 10px 10px;
+    }
+    .slot-no {
+      width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+      background: #2e2410; border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; color: var(--gold-dim);
+    }
+    .slot-row select {
+      flex: 0 0 auto; min-width: 0; width: 120px;
+      padding: 7px 8px; border-radius: 6px;
+      background: #14100b; border: 1px solid var(--border); color: var(--text);
+      font-family: inherit; font-size: 13px; outline: none; cursor: pointer;
+    }
+    .slot-row select:focus { border-color: var(--gold); }
+    .slot-pick {
+      flex: 1; min-width: 0; text-align: right;
+      font-family: var(--font-title); font-weight: 500;
+      font-size: 19px; color: var(--text-dim); letter-spacing: 1px;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .slot-pick.done { color: var(--gold); text-shadow: 0 0 12px rgba(245,196,81,.45); animation: pop .3s ease; }
+    .party-note { font-size: 11px; color: var(--text-dim); text-align: center; margin-top: 10px; letter-spacing: 1px; }
+
     /* 푸터 */
     .footer {
       text-align: center; margin-top: 24px;
@@ -343,8 +413,9 @@
   </div>
 
   <div id="tabs">
-    <button class="tab-btn active" onclick="switchTab('main')">🎲 추첨</button>
-    <button class="tab-btn" id="log-tab-btn" onclick="switchTab('log')">📋 기록 (0)</button>
+    <button class="tab-btn active" data-tab="main" onclick="switchTab('main')">🎲 추첨</button>
+    <button class="tab-btn" data-tab="party" onclick="switchTab('party')">👥 파티</button>
+    <button class="tab-btn" data-tab="log" id="log-tab-btn" onclick="switchTab('log')">📋 기록 (0)</button>
   </div>
 
   <!-- 추첨 패널 -->
@@ -382,6 +453,33 @@
     </div>
   </div>
 
+  <!-- 파티 추첨 패널 -->
+  <div class="panel" id="panel-party">
+    <div class="party-box">
+      <h3>파티 인원</h3>
+      <div class="size-row" id="sizeRow">
+        <button class="size-btn" data-size="1" onclick="setPartySize(1)">1인</button>
+        <button class="size-btn" data-size="2" onclick="setPartySize(2)">2인</button>
+        <button class="size-btn" data-size="3" onclick="setPartySize(3)">3인</button>
+        <button class="size-btn" data-size="4" onclick="setPartySize(4)">4인</button>
+        <button class="size-btn active" data-size="5" onclick="setPartySize(5)">5인</button>
+      </div>
+      <div class="preset-row">
+        <button class="preset-btn" onclick="applyPreset('all')">완전 랜덤</button>
+        <button class="preset-btn" onclick="applyPreset('ratio')">근3 · 원2</button>
+        <button class="preset-btn" onclick="applyPreset('standard')">표준 5역할</button>
+      </div>
+    </div>
+
+    <div class="party-box">
+      <h3>슬롯별 포지션</h3>
+      <div class="slot-list" id="slotList"></div>
+      <div class="party-note">슬롯마다 전체 / 근거리 / 원거리 / 역할군을 자유롭게 지정</div>
+    </div>
+
+    <button id="party-btn" onclick="drawParty()">👥 파티 추첨</button>
+  </div>
+
   <!-- 기록 패널 -->
   <div class="panel" id="panel-log">
     <div class="log-actions">
@@ -411,7 +509,37 @@ const ALL_CHARACTERS = [
   "주세페","루카","앤지 헌트","엔데카","오데트"
 ];
 
+// ── 2026U 시즌 역할군 (공식 매거진 기준, 2nd 버전은 본체로 통합) ──
+const ROLES = {
+  "뱅가드":   ["니콜라스","도일","디아나","라이언","레오노르","레이튼","리첼","린","브루스","숙희","아이작","에바","엔데카","제키엘","티모시","티엔","플로리안","휴톤"],
+  "스트라이커": ["그레타","니콜라스","디아나","레나","레베카","레이튼","로라스","리첼","벨져","스텔라","아이작","이글","제레온","케니스","티모시","티엔","플로리안"],
+  "스커미셔": ["다이무스","라이샌더","로라스","루드빅","벨져","시바","자네트","J","카로슈","카를로스","케니스","키아라","테이","트릭시","호타루"],
+  "리퍼":     ["그레타","다이무스","루이스","루카","이글","자네트","카로슈","카를로스","클리브","테이","히카르도"],
+  "레인저":   ["까미유","나이오비","드렉슬러","론","루시","마를렌","미쉘","바스티안","베로니카","빅터","샬럿","앤지 헌트","엘프리데","웨슬리","윌라드","카인","클레어","타라","탄야","트리비아","파수꾼 A","피터","하랑","헬레나"],
+  "아틸러리": ["드렉슬러","멜빈","미쉘","미아","샬럿","엘리","이사벨","클레어","타라","하랑"],
+  "컨트롤러": ["까미유","드니스","리사","릭","마틴","시드니","앨리셔","에밀리","오데트","웨슬리","재뉴어리","주세페","캐럴","토마스","티샤","피터","헤나투"]
+};
+const MELEE_ROLES = ["뱅가드","스트라이커","스커미셔","리퍼"];
+const RANGED_ROLES = ["레인저","아틸러리","컨트롤러"];
+
+function unionOf(roleNames) {
+  const set = new Set();
+  roleNames.forEach(r => (ROLES[r] || []).forEach(n => set.add(n)));
+  return ALL_CHARACTERS.filter(c => set.has(c));
+}
+function candidatesOf(filter) {
+  if (filter === "all") return [...ALL_CHARACTERS];
+  if (filter === "melee") return unionOf(MELEE_ROLES);
+  if (filter === "ranged") return unionOf(RANGED_ROLES);
+  return unionOf([filter]);
+}
+// 캐릭터가 속한 역할군 표시용
+function rolesOf(name) {
+  return Object.keys(ROLES).filter(r => ROLES[r].includes(name));
+}
+
 const STORAGE_KEY = "cyphers-draw-log";
+const PARTY_KEY = "cyphers-party-setup";
 const TOTAL = ALL_CHARACTERS.length;
 let log = [];
 let animating = false;
@@ -425,6 +553,9 @@ function init() {
     if (stored) log = JSON.parse(stored);
   } catch {}
   document.getElementById("total-count").textContent = TOTAL;
+  loadPartySetup();
+  document.querySelectorAll(".size-btn").forEach(b => b.classList.toggle("active", +b.dataset.size === partySize));
+  renderSlots();
   render();
 }
 function saveLog() {
@@ -542,12 +673,126 @@ function resetAll() {
 // ── 탭 전환 ───────────────────────────────────────
 function switchTab(tab) {
   currentTab = tab;
-  document.querySelectorAll(".tab-btn").forEach((btn, i) => {
-    btn.classList.toggle("active", (i === 0 && tab === "main") || (i === 1 && tab === "log"));
+  document.querySelectorAll(".tab-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.tab === tab);
   });
-  document.getElementById("panel-main").classList.toggle("active", tab === "main");
-  document.getElementById("panel-log").classList.toggle("active", tab === "log");
+  ["main", "party", "log"].forEach(t => {
+    document.getElementById("panel-" + t).classList.toggle("active", t === tab);
+  });
   if (tab === "log") renderLog();
+}
+
+// ── 파티 추첨 ─────────────────────────────────────
+const FILTER_OPTIONS = [
+  { v: "all", t: "전체" },
+  { v: "melee", t: "근거리" },
+  { v: "ranged", t: "원거리" },
+  ...Object.keys(ROLES).map(r => ({ v: r, t: r }))
+];
+let partySize = 5;
+let slotFilters = ["all", "all", "all", "all", "all"];
+let partyDrawing = false;
+
+function savePartySetup() {
+  try { localStorage.setItem(PARTY_KEY, JSON.stringify({ size: partySize, filters: slotFilters })); } catch {}
+}
+function loadPartySetup() {
+  try {
+    const s = JSON.parse(localStorage.getItem(PARTY_KEY));
+    if (s && s.size >= 1 && s.size <= 5 && Array.isArray(s.filters)) {
+      partySize = s.size;
+      slotFilters = s.filters.slice(0, 5);
+      while (slotFilters.length < 5) slotFilters.push("all");
+    }
+  } catch {}
+}
+
+function setPartySize(n) {
+  if (partyDrawing) return;
+  partySize = n;
+  document.querySelectorAll(".size-btn").forEach(b => b.classList.toggle("active", +b.dataset.size === n));
+  renderSlots();
+  savePartySetup();
+}
+
+function applyPreset(kind) {
+  if (partyDrawing) return;
+  if (kind === "all") {
+    slotFilters = ["all", "all", "all", "all", "all"];
+  } else if (kind === "ratio") {
+    slotFilters = ["melee", "melee", "melee", "ranged", "ranged"];
+    setPartySize(5);
+  } else if (kind === "standard") {
+    slotFilters = ["뱅가드", "스트라이커", "리퍼", "아틸러리", "컨트롤러"];
+    setPartySize(5);
+  }
+  renderSlots();
+  savePartySetup();
+}
+
+function renderSlots() {
+  const box = document.getElementById("slotList");
+  box.innerHTML = "";
+  for (let i = 0; i < partySize; i++) {
+    const row = document.createElement("div");
+    row.className = "slot-row";
+    const opts = FILTER_OPTIONS.map(o =>
+      `<option value="${o.v}"${slotFilters[i] === o.v ? " selected" : ""}>${o.t}</option>`).join("");
+    row.innerHTML =
+      `<div class="slot-no">${i + 1}</div>` +
+      `<select onchange="slotFilters[${i}]=this.value; savePartySetup();">${opts}</select>` +
+      `<div class="slot-pick" id="slot-pick-${i}">?</div>`;
+    box.appendChild(row);
+  }
+}
+
+async function drawParty() {
+  if (partyDrawing) return;
+  // 조합이 가능한지 먼저 확인 (같은 역할군을 인원보다 많이 지정한 경우 등)
+  const picked = [];
+  const plan = [];
+  for (let i = 0; i < partySize; i++) {
+    const pool = candidatesOf(slotFilters[i]).filter(c => !picked.includes(c));
+    if (!pool.length) {
+      const label = FILTER_OPTIONS.find(o => o.v === slotFilters[i]).t;
+      alert(`${i + 1}번 슬롯(${label})에 배정할 수 있는 캐릭터가 없습니다.\n포지션 구성을 조정해 주세요.`);
+      return;
+    }
+    const pick = pool[Math.floor(Math.random() * pool.length)];
+    picked.push(pick);
+    plan.push(pick);
+  }
+
+  partyDrawing = true;
+  const btn = document.getElementById("party-btn");
+  btn.disabled = true;
+  document.querySelectorAll(".slot-row select, .size-btn, .preset-btn").forEach(el => el.disabled = true);
+
+  for (let i = 0; i < partySize; i++) {
+    const el = document.getElementById("slot-pick-" + i);
+    const pool = candidatesOf(slotFilters[i]);
+    el.classList.remove("done");
+    await new Promise(resolve => {
+      const start = Date.now();
+      const dur = 700;
+      function step() {
+        const t = Date.now() - start;
+        if (t >= dur) {
+          el.textContent = plan[i];
+          el.classList.add("done");
+          resolve();
+          return;
+        }
+        el.textContent = pool[Math.floor(Math.random() * pool.length)];
+        setTimeout(step, 50 + 170 * Math.pow(t / dur, 2));
+      }
+      step();
+    });
+  }
+
+  partyDrawing = false;
+  btn.disabled = false;
+  document.querySelectorAll(".slot-row select, .size-btn, .preset-btn").forEach(el => el.disabled = false);
 }
 
 // ── UI 렌더 ───────────────────────────────────────
