@@ -430,12 +430,14 @@
       font-size: 12px; font-weight: 700; color: var(--gold-dim);
     }
     /* 슬롯별 포지션 선택 칩 (여러 개 선택 가능, 미선택 = 전체) */
-    .slot-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+    /* 4 + 3 배치 (뱅가드·스트라이커·스커미셔·리퍼 / 레인저·아틸러리·컨트롤러) */
+    .slot-chips { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
     .rchip {
-      padding: 5px 10px; border-radius: 999px;
+      padding: 6px 6px; border-radius: 999px;
       border: 1px solid var(--border); background: #14100b; color: var(--text-dim);
       font-family: inherit; font-size: 12px; cursor: pointer;
       user-select: none; transition: all .15s; white-space: nowrap;
+      justify-content: center; min-width: 0; overflow: hidden;
     }
     .role-ic { height: 15px; width: auto; vertical-align: middle; margin-right: 5px; }
     .rchip { display: inline-flex; align-items: center; }
@@ -487,8 +489,10 @@
       .btn-sub { margin-left: 6px; font-size: 11px; }
       #clock { font-size: 13px; gap: 7px; padding: 9px 12px; }
       .log-name { font-size: 16px; }
-      .rchip { font-size: 11px; padding: 5px 8px; }
-      .slot-chips { gap: 4px; }
+      .rchip { font-size: 11px; padding: 5px 4px; }
+      .rchip .role-ic { height: 14px; margin-right: 3px; }
+      /* 좁은 화면에서는 4열이면 글자가 잘려 3열로 */
+      .slot-chips { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
       .slot-pick { font-size: 17px; }
     }
   </style>
