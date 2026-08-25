@@ -84,6 +84,8 @@
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    /* 버튼 글자가 드래그로 선택되지 않도록 */
+    button { user-select: none; -webkit-user-select: none; }
     html {
       -webkit-text-size-adjust: 100%;
       text-size-adjust: 100%;
@@ -574,7 +576,7 @@
     <div class="party-box">
       <div class="box-head">
         <h3>슬롯별 포지션</h3>
-        <button class="preset-btn" onclick="applyPreset('all')">↺ 모든 슬롯 전체 선택</button>
+        <button class="preset-btn" id="presetBtn" onclick="applyPreset()">↺ 모든 슬롯 전체 선택</button>
       </div>
       <div class="slot-list" id="slotList"></div>
       <div class="party-note">슬롯마다 선택한 포지션 중에서 추첨됩니다</div>
@@ -996,9 +998,20 @@ function setPartySize(n) {
   savePartySetup();
 }
 
-function applyPreset(kind) {
+// 사용 중인 슬롯이 모두 전체 선택 상태인지
+function allSlotsFull() {
+  return slotRoles.slice(0, partySize).every(a => ROLE_NAMES.every(r => a.includes(r)));
+}
+function updatePresetBtn() {
+  const btn = document.getElementById("presetBtn");
+  if (btn) btn.textContent = allSlotsFull() ? "↺ 모든 슬롯 선택 해제" : "↺ 모든 슬롯 전체 선택";
+}
+
+// 모든 슬롯 전체 선택 ↔ 모두 해제 토글
+function applyPreset() {
   if (partyDrawing) return;
-  if (kind === "all") slotRoles = [0, 1, 2, 3, 4].map(() => [...ROLE_NAMES]);
+  const full = allSlotsFull();
+  slotRoles = [0, 1, 2, 3, 4].map(() => full ? [] : [...ROLE_NAMES]);
   renderSlots();
   savePartySetup();
 }
@@ -1033,6 +1046,7 @@ function chipsHTML(i) {
 function renderSlotChips(i) {
   const box = document.getElementById("slot-chips-" + i);
   if (box) box.innerHTML = chipsHTML(i);
+  updatePresetBtn();
 }
 
 function renderSlots() {
@@ -1049,6 +1063,7 @@ function renderSlots() {
       `<div class="slot-chips" id="slot-chips-${i}">${chipsHTML(i)}</div>`;
     box.appendChild(row);
   }
+  updatePresetBtn();
 }
 
 // 슬롯 표시: 이름 + 1st/2nd 배지 (전체 슬롯은 배지 없음)
