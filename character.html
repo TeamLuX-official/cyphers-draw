@@ -447,6 +447,9 @@
     .ult-tag .role-ic { height: 13px; margin-right: 3px; }
     .rchip:hover:not(.disabled) { border-color: var(--gold); color: var(--gold); }
     .rchip.on { background: #2e2410; border-color: var(--border-hi); color: var(--gold); font-weight: 700; }
+    /* 전체 선택/해제 버튼 */
+    .all-chip { border-style: dashed; letter-spacing: 1px; }
+    .all-chip.on { border-style: solid; background: #3a2c12; }
     .rchip.disabled { opacity: .5; cursor: not-allowed; }
     .slot-pick {
       flex: 1; min-width: 0; text-align: right;
@@ -571,10 +574,10 @@
     <div class="party-box">
       <div class="box-head">
         <h3>슬롯별 포지션</h3>
-        <button class="preset-btn" onclick="applyPreset('all')">↺ 포지션 지정 해제</button>
+        <button class="preset-btn" onclick="applyPreset('all')">↺ 모든 슬롯 전체 선택</button>
       </div>
       <div class="slot-list" id="slotList"></div>
-      <div class="party-note">포지션을 여러 개 선택하면 그중에서 추첨 · 선택 없으면 전체</div>
+      <div class="party-note">슬롯마다 선택한 포지션 중에서 추첨됩니다</div>
     </div>
 
     <button id="party-btn" onclick="drawParty()">👥 파티 추첨</button>
@@ -935,8 +938,8 @@ function roleIcon(role) {
   return ROLE_ICON[role] ? `<img class="role-ic" src="${ROLE_ICON[role]}" alt="">` : "";
 }
 let partySize = 5;
-// 슬롯별로 여러 포지션 선택 가능 — 빈 배열이면 전체
-let slotRoles = [[], [], [], [], []];
+// 슬롯별로 여러 포지션 선택 (기본값은 전체 선택)
+let slotRoles = [0, 1, 2, 3, 4].map(() => [...ROLE_NAMES]);
 let partyDrawing = false;
 
 function savePartySetup() {
@@ -948,26 +951,41 @@ function loadPartySetup() {
     if (!s || !(s.size >= 2 && s.size <= 5)) return;
     partySize = s.size;
     if (Array.isArray(s.roles)) {
-      slotRoles = s.roles.slice(0, 5).map(a => Array.isArray(a) ? a.filter(r => ROLES[r]) : []);
+      slotRoles = s.roles.slice(0, 5).map(a => {
+        const arr = Array.isArray(a) ? a.filter(r => ROLES[r]) : [];
+        return arr.length ? arr : [...ROLE_NAMES]; // 이전 '빈 배열 = 전체' 설정 이어받기
+      });
     } else if (Array.isArray(s.filters)) {
-      // 이전 버전(슬롯당 1개 선택) 설정 이어받기
-      slotRoles = s.filters.slice(0, 5).map(f => ROLES[f] ? [f] : []);
+      // 더 이전 버전(슬롯당 1개 선택) 설정 이어받기
+      slotRoles = s.filters.slice(0, 5).map(f => ROLES[f] ? [f] : [...ROLE_NAMES]);
     }
-    while (slotRoles.length < 5) slotRoles.push([]);
+    while (slotRoles.length < 5) slotRoles.push([...ROLE_NAMES]);
   } catch {}
 }
 
-// 슬롯의 후보 목록 — 선택된 포지션들의 합집합, 미선택이면 전체
+// 슬롯의 후보 목록 — 선택된 포지션들의 합집합
 function slotPool(i) {
-  const sel = slotRoles[i] || [];
-  if (!sel.length) return ALL_CHARACTERS.map(c => ({ base: c, ult: 0 }));
   const out = [];
-  sel.forEach(r => (ROLES[r] || []).forEach(e => out.push(e)));
+  (slotRoles[i] || []).forEach(r => (ROLES[r] || []).forEach(e => out.push(e)));
   return out;
 }
 function slotLabel(i) {
   const sel = slotRoles[i] || [];
-  return sel.length ? sel.join(" + ") : "전체";
+  return sel.length === ROLE_NAMES.length ? "전체" : sel.join(" + ");
+}
+// 캐릭터를 균등하게 뽑은 뒤 그 캐릭터가 가진 궁 중 하나를 배정
+// (여러 역할군에 걸친 캐릭터가 더 자주 뽑히지 않도록)
+function pickEntry(pool, usedBases) {
+  const byBase = new Map();
+  pool.forEach(e => {
+    if (usedBases.includes(e.base)) return;
+    if (!byBase.has(e.base)) byBase.set(e.base, []);
+    byBase.get(e.base).push(e);
+  });
+  const bases = [...byBase.keys()];
+  if (!bases.length) return null;
+  const opts = byBase.get(bases[Math.floor(Math.random() * bases.length)]);
+  return resolveUlt(opts[Math.floor(Math.random() * opts.length)]);
 }
 
 function setPartySize(n) {
@@ -980,7 +998,7 @@ function setPartySize(n) {
 
 function applyPreset(kind) {
   if (partyDrawing) return;
-  if (kind === "all") slotRoles = [[], [], [], [], []];
+  if (kind === "all") slotRoles = [0, 1, 2, 3, 4].map(() => [...ROLE_NAMES]);
   renderSlots();
   savePartySetup();
 }
@@ -991,9 +1009,30 @@ function toggleSlotRole(i, role) {
   const sel = slotRoles[i];
   const idx = sel.indexOf(role);
   if (idx >= 0) sel.splice(idx, 1); else sel.push(role);
-  document.querySelectorAll(`#slot-chips-${i} .rchip`).forEach(c =>
-    c.classList.toggle("on", sel.includes(c.dataset.role)));
+  renderSlotChips(i);
   savePartySetup();
+}
+
+// 전체 버튼: 모두 선택 ↔ 모두 해제
+function toggleSlotAll(i) {
+  if (partyDrawing) return;
+  const allOn = ROLE_NAMES.every(r => slotRoles[i].includes(r));
+  slotRoles[i] = allOn ? [] : [...ROLE_NAMES];
+  renderSlotChips(i);
+  savePartySetup();
+}
+
+function chipsHTML(i) {
+  const allOn = ROLE_NAMES.every(r => slotRoles[i].includes(r));
+  return ROLE_NAMES.map(r =>
+    `<span class="rchip${slotRoles[i].includes(r) ? " on" : ""}" data-role="${r}" onclick="toggleSlotRole(${i}, '${r}')">${roleIcon(r)}${r}</span>`
+  ).join("") +
+  `<span class="rchip all-chip${allOn ? " on" : ""}" onclick="toggleSlotAll(${i})">전체</span>`;
+}
+
+function renderSlotChips(i) {
+  const box = document.getElementById("slot-chips-" + i);
+  if (box) box.innerHTML = chipsHTML(i);
 }
 
 function renderSlots() {
@@ -1002,15 +1041,12 @@ function renderSlots() {
   for (let i = 0; i < partySize; i++) {
     const row = document.createElement("div");
     row.className = "slot-row";
-    const chips = ROLE_NAMES.map(r =>
-      `<span class="rchip${slotRoles[i].includes(r) ? " on" : ""}" data-role="${r}" onclick="toggleSlotRole(${i}, '${r}')">${roleIcon(r)}${r}</span>`
-    ).join("");
     row.innerHTML =
       `<div class="slot-head">` +
         `<div class="slot-no">${i + 1}</div>` +
         `<div class="slot-pick" id="slot-pick-${i}">?</div>` +
       `</div>` +
-      `<div class="slot-chips" id="slot-chips-${i}">${chips}</div>`;
+      `<div class="slot-chips" id="slot-chips-${i}">${chipsHTML(i)}</div>`;
     box.appendChild(row);
   }
 }
@@ -1028,13 +1064,15 @@ async function drawParty() {
   const picked = [];  // 같은 캐릭터는 궁이 달라도 파티 내 중복 불가
   const plan = [];
   for (let i = 0; i < partySize; i++) {
-    const pool = slotPool(i).filter(e => !picked.includes(e.base));
-    if (!pool.length) {
+    if (!(slotRoles[i] || []).length) {
+      alert(`${i + 1}번 슬롯의 포지션을 하나 이상 선택해 주세요.`);
+      return;
+    }
+    const pick = pickEntry(slotPool(i), picked);
+    if (!pick) {
       alert(`${i + 1}번 슬롯(${slotLabel(i)})에 배정할 수 있는 캐릭터가 없습니다.\n포지션 구성을 조정해 주세요.`);
       return;
     }
-    // 전체 슬롯이면 캐릭터를 먼저 고르고 그 캐릭터가 가진 궁 중 하나를 배정
-    const pick = resolveUlt(pool[Math.floor(Math.random() * pool.length)]);
     picked.push(pick.base);
     plan.push(pick);
   }
