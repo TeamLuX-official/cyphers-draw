@@ -424,7 +424,15 @@
       border-left: 3px solid var(--border-hi);
       border-radius: 6px; padding: 10px 12px 11px 10px;
     }
-    .slot-head { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
+    .slot-head { display: flex; align-items: center; gap: 8px; margin-bottom: 9px; }
+    .slot-nick {
+      flex: 0 1 130px; min-width: 0;
+      padding: 6px 9px; border-radius: 6px;
+      background: #14100b; border: 1px solid var(--border); color: var(--text);
+      font-family: inherit; font-size: 12px; outline: none;
+    }
+    .slot-nick:focus { border-color: var(--gold); }
+    .slot-nick::placeholder { color: #6b6046; }
     .slot-no {
       width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
       background: #2e2410; border: 1px solid var(--border);
@@ -499,6 +507,8 @@
       /* 좁은 화면에서는 4열이면 글자가 잘려 3열로 */
       .slot-chips { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
       .slot-pick { font-size: 17px; }
+      .slot-nick { flex: 0 1 96px; font-size: 11px; padding: 5px 7px; }
+      .slot-head { gap: 6px; }
     }
   </style>
 </head>
@@ -583,6 +593,7 @@
     </div>
 
     <button id="party-btn" onclick="drawParty()">👥 파티 추첨</button>
+    <button class="btn-mini" id="copy-btn" style="width:100%;margin-top:10px;" onclick="copyPartyResult()" disabled>📋 결과 복사</button>
   </div>
 
   <!-- 기록 패널 -->
@@ -942,10 +953,14 @@ function roleIcon(role) {
 let partySize = 5;
 // 슬롯별로 여러 포지션 선택 (기본값은 전체 선택)
 let slotRoles = [0, 1, 2, 3, 4].map(() => [...ROLE_NAMES]);
+let slotNames = ["", "", "", "", ""];  // 선택 입력 닉네임
+let lastParty = null;                   // 마지막 추첨 결과 (결과 복사용)
 let partyDrawing = false;
 
 function savePartySetup() {
-  try { localStorage.setItem(PARTY_KEY, JSON.stringify({ size: partySize, roles: slotRoles })); } catch {}
+  try {
+    localStorage.setItem(PARTY_KEY, JSON.stringify({ size: partySize, roles: slotRoles, names: slotNames }));
+  } catch {}
 }
 function loadPartySetup() {
   try {
@@ -962,6 +977,10 @@ function loadPartySetup() {
       slotRoles = s.filters.slice(0, 5).map(f => ROLES[f] ? [f] : [...ROLE_NAMES]);
     }
     while (slotRoles.length < 5) slotRoles.push([...ROLE_NAMES]);
+    if (Array.isArray(s.names)) {
+      slotNames = s.names.slice(0, 5).map(n => typeof n === "string" ? n : "");
+      while (slotNames.length < 5) slotNames.push("");
+    }
   } catch {}
 }
 
@@ -1058,12 +1077,57 @@ function renderSlots() {
     row.innerHTML =
       `<div class="slot-head">` +
         `<div class="slot-no">${i + 1}</div>` +
+        `<input class="slot-nick" id="slot-nick-${i}" placeholder="닉네임 (선택)" maxlength="16" ` +
+          `value="${(slotNames[i] || "").replace(/"/g, "&quot;")}" oninput="slotNames[${i}]=this.value; savePartySetup();">` +
         `<div class="slot-pick" id="slot-pick-${i}">?</div>` +
       `</div>` +
       `<div class="slot-chips" id="slot-chips-${i}">${chipsHTML(i)}</div>`;
     box.appendChild(row);
   }
   updatePresetBtn();
+  // 슬롯 구성이 바뀌면 이전 추첨 결과는 무효
+  lastParty = null;
+  const cb = document.getElementById("copy-btn");
+  if (cb) cb.disabled = true;
+}
+
+// ── 결과 공유 (텍스트 복사) ───────────────────────
+// 예) 1번(닉네임) : 니콜라스 2nd 스트라이커
+function partyResultText() {
+  if (!lastParty) return "";
+  // 닉네임은 복사 시점의 입력값을 사용 (추첨 후에 입력해도 반영)
+  return lastParty.map((e, i) => {
+    const nick = (slotNames[i] || "").trim();
+    return `${i + 1}번${nick ? `(${nick})` : ""} : ${e.base} ${ultLabel(e.ult)} ${e.role}`.trim();
+  }).join("\n");
+}
+
+function copyPartyResult() {
+  const text = partyResultText();
+  if (!text) { alert("먼저 파티 추첨을 진행해 주세요."); return; }
+  const btn = document.getElementById("copy-btn");
+  const done = () => {
+    btn.textContent = "✅ 복사됨";
+    setTimeout(() => { btn.textContent = "📋 결과 복사"; }, 1500);
+  };
+  // http/https가 아닌 환경(로컬 파일 등)에서는 clipboard API가 막히므로 대체 방식 사용
+  const fallback = () => {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    let ok = false;
+    try { ok = document.execCommand("copy"); } catch (e) {}
+    document.body.removeChild(ta);
+    if (ok) done(); else prompt("아래 내용을 복사하세요", text);
+  };
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(done).catch(fallback);
+  } else {
+    fallback();
+  }
 }
 
 // 슬롯 표시: 이름 + 1st/2nd 배지 (전체 슬롯은 배지 없음)
@@ -1120,6 +1184,9 @@ async function drawParty() {
       step();
     });
   }
+
+  lastParty = plan.map(e => ({ base: e.base, ult: e.ult, role: roleOf(e.base, e.ult) }));
+  document.getElementById("copy-btn").disabled = false;
 
   partyDrawing = false;
   btn.disabled = false;
