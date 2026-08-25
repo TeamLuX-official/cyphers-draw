@@ -416,26 +416,36 @@
     .preset-btn:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); }
     .preset-btn:disabled { opacity: .4; cursor: not-allowed; }
 
-    .slot-list { display: flex; flex-direction: column; gap: 8px; }
+    .slot-list { display: flex; flex-direction: column; gap: 10px; }
     .slot-row {
-      display: flex; align-items: center; gap: 10px;
       background: #0d0a06; border: 1px solid var(--border);
       border-left: 3px solid var(--border-hi);
-      border-radius: 6px; padding: 10px 12px 10px 10px;
+      border-radius: 6px; padding: 10px 12px 11px 10px;
     }
+    .slot-head { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
     .slot-no {
       width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
       background: #2e2410; border: 1px solid var(--border);
       display: flex; align-items: center; justify-content: center;
       font-size: 12px; font-weight: 700; color: var(--gold-dim);
     }
-    .slot-row select {
-      flex: 0 0 auto; min-width: 0; width: 120px;
-      padding: 7px 8px; border-radius: 6px;
-      background: #14100b; border: 1px solid var(--border); color: var(--text);
-      font-family: inherit; font-size: 13px; outline: none; cursor: pointer;
+    /* 슬롯별 포지션 선택 칩 (여러 개 선택 가능, 미선택 = 전체) */
+    .slot-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+    .rchip {
+      padding: 5px 10px; border-radius: 999px;
+      border: 1px solid var(--border); background: #14100b; color: var(--text-dim);
+      font-family: inherit; font-size: 12px; cursor: pointer;
+      user-select: none; transition: all .15s; white-space: nowrap;
     }
-    .slot-row select:focus { border-color: var(--gold); }
+    .role-ic { height: 15px; width: auto; vertical-align: middle; margin-right: 5px; }
+    .rchip { display: inline-flex; align-items: center; }
+    .rchip .role-ic { height: 16px; margin-right: 4px; opacity: .75; }
+    .rchip.on .role-ic { opacity: 1; }
+    .ult-badge .role-ic { height: 15px; margin-right: 5px; }
+    .ult-tag .role-ic { height: 13px; margin-right: 3px; }
+    .rchip:hover:not(.disabled) { border-color: var(--gold); color: var(--gold); }
+    .rchip.on { background: #2e2410; border-color: var(--border-hi); color: var(--gold); font-weight: 700; }
+    .rchip.disabled { opacity: .5; cursor: not-allowed; }
     .slot-pick {
       flex: 1; min-width: 0; text-align: right;
       font-family: var(--font-title); font-weight: 500;
@@ -444,7 +454,7 @@
     }
     .slot-pick.done { color: var(--gold); text-shadow: 0 0 12px rgba(245,196,81,.45); animation: pop .3s ease; }
     .ult-tag {
-      display: inline-block; margin-left: 7px; padding: 2px 7px;
+      display: inline-flex; align-items: center; margin-left: 7px; padding: 2px 7px;
       border-radius: 999px; border: 1px solid var(--border-hi);
       background: #2e2410; color: var(--gold-dim);
       font-family: var(--font-body); font-size: 11px; font-weight: 700;
@@ -477,6 +487,9 @@
       .btn-sub { margin-left: 6px; font-size: 11px; }
       #clock { font-size: 13px; gap: 7px; padding: 9px 12px; }
       .log-name { font-size: 16px; }
+      .rchip { font-size: 11px; padding: 5px 8px; }
+      .slot-chips { gap: 4px; }
+      .slot-pick { font-size: 17px; }
     }
   </style>
 </head>
@@ -557,7 +570,7 @@
         <button class="preset-btn" onclick="applyPreset('all')">↺ 포지션 지정 해제</button>
       </div>
       <div class="slot-list" id="slotList"></div>
-      <div class="party-note">슬롯마다 전체 또는 역할군을 자유롭게 지정</div>
+      <div class="party-note">포지션을 여러 개 선택하면 그중에서 추첨 · 선택 없으면 전체</div>
     </div>
 
     <button id="party-btn" onclick="drawParty()">👥 파티 추첨</button>
@@ -805,8 +818,9 @@ function draw() {
 // 배지: 포지션 추첨이면 궁만("1st"), 완전 랜덤이면 역할군까지("뱅가드 1st")
 function badgeHTML(name, ult, roleMode) {
   if (!ult) return "&nbsp;";
-  const text = roleMode ? ultLabel(ult) : `${roleOf(name, ult)} ${ultLabel(ult)}`.trim();
-  return `<span class="ult-badge">${text}</span>`;
+  const role = roleOf(name, ult);
+  const text = roleMode ? ultLabel(ult) : `${role} ${ultLabel(ult)}`.trim();
+  return `<span class="ult-badge">${roleIcon(role)}${text}</span>`;
 }
 
 function showResult(name, time, role, ult) {
@@ -902,27 +916,54 @@ function switchTab(tab) {
 }
 
 // ── 파티 추첨 ─────────────────────────────────────
-const FILTER_OPTIONS = [
-  { v: "all", t: "전체" },
-  ...Object.keys(ROLES).map(r => ({ v: r, t: r }))
-];
+// 역할군 아이콘 (공식 매거진 아이콘, 배경 투명화 후 내장)
+const ROLE_ICON = {
+  "뱅가드": "data:image/png;base64,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",
+  "스트라이커": "data:image/png;base64,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",
+  "스커미셔": "data:image/png;base64,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",
+  "리퍼": "data:image/png;base64,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",
+  "레인저": "data:image/png;base64,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",
+  "아틸러리": "data:image/png;base64,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",
+  "컨트롤러": "data:image/png;base64,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"
+};
+const ROLE_NAMES = Object.keys(ROLES);
+function roleIcon(role) {
+  return ROLE_ICON[role] ? `<img class="role-ic" src="${ROLE_ICON[role]}" alt="">` : "";
+}
 let partySize = 5;
-let slotFilters = ["all", "all", "all", "all", "all"];
+// 슬롯별로 여러 포지션 선택 가능 — 빈 배열이면 전체
+let slotRoles = [[], [], [], [], []];
 let partyDrawing = false;
 
 function savePartySetup() {
-  try { localStorage.setItem(PARTY_KEY, JSON.stringify({ size: partySize, filters: slotFilters })); } catch {}
+  try { localStorage.setItem(PARTY_KEY, JSON.stringify({ size: partySize, roles: slotRoles })); } catch {}
 }
 function loadPartySetup() {
   try {
     const s = JSON.parse(localStorage.getItem(PARTY_KEY));
-    if (s && s.size >= 2 && s.size <= 5 && Array.isArray(s.filters)) {
-      partySize = s.size;
-      // 삭제된 근거리/원거리 등 유효하지 않은 값은 '전체'로 정리
-      slotFilters = s.filters.slice(0, 5).map(f => (f === "all" || ROLES[f]) ? f : "all");
-      while (slotFilters.length < 5) slotFilters.push("all");
+    if (!s || !(s.size >= 2 && s.size <= 5)) return;
+    partySize = s.size;
+    if (Array.isArray(s.roles)) {
+      slotRoles = s.roles.slice(0, 5).map(a => Array.isArray(a) ? a.filter(r => ROLES[r]) : []);
+    } else if (Array.isArray(s.filters)) {
+      // 이전 버전(슬롯당 1개 선택) 설정 이어받기
+      slotRoles = s.filters.slice(0, 5).map(f => ROLES[f] ? [f] : []);
     }
+    while (slotRoles.length < 5) slotRoles.push([]);
   } catch {}
+}
+
+// 슬롯의 후보 목록 — 선택된 포지션들의 합집합, 미선택이면 전체
+function slotPool(i) {
+  const sel = slotRoles[i] || [];
+  if (!sel.length) return ALL_CHARACTERS.map(c => ({ base: c, ult: 0 }));
+  const out = [];
+  sel.forEach(r => (ROLES[r] || []).forEach(e => out.push(e)));
+  return out;
+}
+function slotLabel(i) {
+  const sel = slotRoles[i] || [];
+  return sel.length ? sel.join(" + ") : "전체";
 }
 
 function setPartySize(n) {
@@ -935,8 +976,19 @@ function setPartySize(n) {
 
 function applyPreset(kind) {
   if (partyDrawing) return;
-  if (kind === "all") slotFilters = ["all", "all", "all", "all", "all"];
+  if (kind === "all") slotRoles = [[], [], [], [], []];
   renderSlots();
+  savePartySetup();
+}
+
+// 포지션 칩 토글 (여러 개 선택 가능)
+function toggleSlotRole(i, role) {
+  if (partyDrawing) return;
+  const sel = slotRoles[i];
+  const idx = sel.indexOf(role);
+  if (idx >= 0) sel.splice(idx, 1); else sel.push(role);
+  document.querySelectorAll(`#slot-chips-${i} .rchip`).forEach(c =>
+    c.classList.toggle("on", sel.includes(c.dataset.role)));
   savePartySetup();
 }
 
@@ -946,21 +998,24 @@ function renderSlots() {
   for (let i = 0; i < partySize; i++) {
     const row = document.createElement("div");
     row.className = "slot-row";
-    const opts = FILTER_OPTIONS.map(o =>
-      `<option value="${o.v}"${slotFilters[i] === o.v ? " selected" : ""}>${o.t}</option>`).join("");
+    const chips = ROLE_NAMES.map(r =>
+      `<span class="rchip${slotRoles[i].includes(r) ? " on" : ""}" data-role="${r}" onclick="toggleSlotRole(${i}, '${r}')">${roleIcon(r)}${r}</span>`
+    ).join("");
     row.innerHTML =
-      `<div class="slot-no">${i + 1}</div>` +
-      `<select onchange="slotFilters[${i}]=this.value; savePartySetup();">${opts}</select>` +
-      `<div class="slot-pick" id="slot-pick-${i}">?</div>`;
+      `<div class="slot-head">` +
+        `<div class="slot-no">${i + 1}</div>` +
+        `<div class="slot-pick" id="slot-pick-${i}">?</div>` +
+      `</div>` +
+      `<div class="slot-chips" id="slot-chips-${i}">${chips}</div>`;
     box.appendChild(row);
   }
 }
 
 // 슬롯 표시: 이름 + 1st/2nd 배지 (전체 슬롯은 배지 없음)
 function slotHTML(entry) {
-  return entry.ult
-    ? `${entry.base}<span class="ult-tag">${ultLabel(entry.ult)}</span>`
-    : entry.base;
+  if (!entry.ult) return entry.base;
+  const role = roleOf(entry.base, entry.ult);
+  return `${entry.base}<span class="ult-tag">${roleIcon(role)}${ultLabel(entry.ult)}</span>`;
 }
 
 async function drawParty() {
@@ -969,10 +1024,9 @@ async function drawParty() {
   const picked = [];  // 같은 캐릭터는 궁이 달라도 파티 내 중복 불가
   const plan = [];
   for (let i = 0; i < partySize; i++) {
-    const pool = candidatesOf(slotFilters[i]).filter(e => !picked.includes(e.base));
+    const pool = slotPool(i).filter(e => !picked.includes(e.base));
     if (!pool.length) {
-      const label = FILTER_OPTIONS.find(o => o.v === slotFilters[i]).t;
-      alert(`${i + 1}번 슬롯(${label})에 배정할 수 있는 캐릭터가 없습니다.\n포지션 구성을 조정해 주세요.`);
+      alert(`${i + 1}번 슬롯(${slotLabel(i)})에 배정할 수 있는 캐릭터가 없습니다.\n포지션 구성을 조정해 주세요.`);
       return;
     }
     // 전체 슬롯이면 캐릭터를 먼저 고르고 그 캐릭터가 가진 궁 중 하나를 배정
@@ -984,11 +1038,12 @@ async function drawParty() {
   partyDrawing = true;
   const btn = document.getElementById("party-btn");
   btn.disabled = true;
-  document.querySelectorAll(".slot-row select, .size-btn, .preset-btn").forEach(el => el.disabled = true);
+  document.querySelectorAll(".size-btn, .preset-btn").forEach(el => el.disabled = true);
+  document.querySelectorAll(".rchip").forEach(el => el.classList.add("disabled"));
 
   for (let i = 0; i < partySize; i++) {
     const el = document.getElementById("slot-pick-" + i);
-    const pool = candidatesOf(slotFilters[i]);
+    const pool = slotPool(i);
     el.classList.remove("done");
     await new Promise(resolve => {
       const start = Date.now();
@@ -1011,7 +1066,8 @@ async function drawParty() {
 
   partyDrawing = false;
   btn.disabled = false;
-  document.querySelectorAll(".slot-row select, .size-btn, .preset-btn").forEach(el => el.disabled = false);
+  document.querySelectorAll(".size-btn, .preset-btn").forEach(el => el.disabled = false);
+  document.querySelectorAll(".rchip").forEach(el => el.classList.remove("disabled"));
 }
 
 // ── UI 렌더 ───────────────────────────────────────
