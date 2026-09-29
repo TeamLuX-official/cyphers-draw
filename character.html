@@ -297,16 +297,18 @@
       opacity: .7;
       vertical-align: middle;
     }
-    #reset-btn, #reset-btn2 {
+    #log-toggle { width: 100%; margin-top: 12px; }
+    #log-section { margin-top: 12px; }
+    #log-list { max-height: 340px; overflow-y: auto; }
+    #reset-btn {
       width: 100%; margin-top: 12px; padding: 12px;
       border-radius: 8px; border: 1px solid #7a3a30;
       cursor: pointer; background: #2a1410; color: #ff8a7a;
       font-size: 14px; font-weight: 600; transition: all 0.15s;
       font-family: inherit; white-space: nowrap;
     }
-    #reset-btn:hover:not(:disabled), #reset-btn2:hover:not(:disabled) { filter: brightness(1.25); }
-    #reset-btn:disabled, #reset-btn2:disabled { opacity: .35; cursor: not-allowed; }
-    #reset-btn2 { margin-top: 16px; }
+    #reset-btn:hover:not(:disabled) { filter: brightness(1.25); }
+    #reset-btn:disabled { opacity: .35; cursor: not-allowed; }
     #party-btn {
       width: 100%; padding: 17px; border-radius: 8px;
       cursor: pointer; font-size: 18px; font-weight: 800;
@@ -558,7 +560,6 @@
   <div id="tabs">
     <button class="tab-btn active" data-tab="main" onclick="switchTab('main')">🎲 개인 추첨</button>
     <button class="tab-btn" data-tab="party" onclick="switchTab('party')">👥 파티 추첨</button>
-    <button class="tab-btn" data-tab="log" id="log-tab-btn" onclick="switchTab('log')">📋 기록 (0)</button>
     <button class="tab-btn" data-tab="roles" onclick="switchTab('roles')">📖 포지션 목록</button>
   </div>
 
@@ -598,6 +599,22 @@
     </div>
 
     <button id="draw-btn" onclick="draw()">🎲 추첨하기 (1번째)</button>
+
+    <!-- 추첨 기록 (개인 추첨에서만 쌓이므로 이 탭 안에 배치) -->
+    <button class="btn-mini" id="log-toggle" onclick="toggleLogSection()">▼ 기록 (0)</button>
+    <div id="log-section">
+      <div class="log-actions">
+        <button class="btn-mini" onclick="exportLogFile()">📥 기록 저장 (.json)</button>
+        <button class="btn-mini" onclick="document.getElementById('logFile').click()">📤 기록 불러오기</button>
+        <input type="file" id="logFile" accept=".json" hidden onchange="importLogFile(this)">
+      </div>
+      <div id="log-empty">
+        <div class="icon">📋</div>
+        <div>아직 추첨 기록이 없습니다</div>
+      </div>
+      <div id="log-list"></div>
+    </div>
+
     <button id="reset-btn" onclick="resetAll()">🗑 초기화</button>
 
     <div class="footer">
@@ -629,21 +646,6 @@
 
     <button id="party-btn" onclick="drawParty()">👥 파티 추첨</button>
     <button class="btn-mini" id="copy-btn" style="width:100%;margin-top:10px;" onclick="copyPartyResult()" disabled>📋 결과 복사</button>
-  </div>
-
-  <!-- 기록 패널 -->
-  <div class="panel" id="panel-log">
-    <div class="log-actions">
-      <button class="btn-mini" onclick="exportLogFile()">📥 기록 저장 (.json)</button>
-      <button class="btn-mini" onclick="document.getElementById('logFile').click()">📤 기록 불러오기</button>
-      <input type="file" id="logFile" accept=".json" hidden onchange="importLogFile(this)">
-    </div>
-    <div id="log-empty">
-      <div class="icon">📋</div>
-      <div>아직 추첨 기록이 없습니다</div>
-    </div>
-    <div id="log-list"></div>
-    <button id="reset-btn2" onclick="resetAll()">🗑 전체 기록 초기화</button>
   </div>
 
   <!-- 포지션별 캐릭터 목록 -->
@@ -739,6 +741,8 @@ function init() {
   loadPartySetup();
   document.querySelectorAll(".size-btn").forEach(b => b.classList.toggle("active", +b.dataset.size === partySize));
   renderSlots();
+  try { logOpen = localStorage.getItem(LOG_OPEN_KEY) === "1"; } catch {}
+  applyLogOpen();
   render();
 }
 function saveLog() {
@@ -970,10 +974,9 @@ function switchTab(tab) {
   document.querySelectorAll(".tab-btn").forEach(btn => {
     btn.classList.toggle("active", btn.dataset.tab === tab);
   });
-  ["main", "party", "log", "roles"].forEach(t => {
+  ["main", "party", "roles"].forEach(t => {
     document.getElementById("panel-" + t).classList.toggle("active", t === tab);
   });
-  if (tab === "log") renderLog();
   if (tab === "roles") renderRoleList();
 }
 
@@ -1263,7 +1266,7 @@ function render() {
   const allDone = remaining.length === 0;
 
   document.getElementById("remain-count").textContent = remaining.length;
-  document.getElementById("log-tab-btn").textContent = `📋 기록 (${log.length})`;
+  updateLogToggle();
   document.getElementById("progress-text").textContent = `${drawn} / ${TOTAL} (${pct}%)`;
   document.getElementById("progress-bar").style.width = pct + "%";
 
@@ -1288,9 +1291,30 @@ function render() {
   }
 
   document.getElementById("reset-btn").disabled = log.length === 0;
-  document.getElementById("reset-btn2").disabled = log.length === 0;
   updateRoleUI();
-  if (currentTab === "log") renderLog();
+  if (logOpen) renderLog();
+}
+
+// 기록 섹션 접기/펼치기
+let logOpen = false;
+const LOG_OPEN_KEY = "cyphers-log-open";
+
+function updateLogToggle() {
+  const btn = document.getElementById("log-toggle");
+  if (btn) btn.textContent = (logOpen ? "▲" : "▼") + " 기록 (" + log.length + ")";
+}
+
+function applyLogOpen() {
+  const sec = document.getElementById("log-section");
+  if (sec) sec.style.display = logOpen ? "block" : "none";
+  updateLogToggle();
+  if (logOpen) renderLog();
+}
+
+function toggleLogSection() {
+  logOpen = !logOpen;
+  try { localStorage.setItem(LOG_OPEN_KEY, logOpen ? "1" : "0"); } catch {}
+  applyLogOpen();
 }
 
 function renderLog() {
