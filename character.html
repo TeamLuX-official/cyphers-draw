@@ -528,6 +528,13 @@
       border-radius: 5px; background: #000; object-fit: cover;
     }
     .rl-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    a.rl-item { text-decoration: none; cursor: pointer; transition: all .15s; }
+    a.rl-item:hover {
+      border-color: var(--border-hi);
+      background: #171008;
+      transform: translateY(-1px);
+    }
+    a.rl-item:hover .rl-name { color: var(--gold); }
     /* 궁극기 표시 — 1st 연두, 2nd 보라 (인게임 표기와 동일) */
     .rl-ult {
       width: 19px; height: 19px; flex-shrink: 0;
@@ -734,6 +741,13 @@ function candidatesOf(filter) {
   if (filter === "all" || !ROLES[filter]) return ALL_CHARACTERS.map(c => ({ base: c, ult: 0 }));
   return ROLES[filter];
 }
+// 공식 이클립스 페이지 슬러그 (ALL_CHARACTERS와 같은 순서)
+const CHAR_SLUG = ["loras","huton","louis","tara","trivia","cain","rena","drexler","doyle","thomas","niobe","shiva","wesley","stella","alicia","clare","deimus","eagle","marlene","charlotte","lleyton","willard","michelle","rin","carlos","viktor","hotaru","trixie","ricardo","camille","jannette","peter","rebecca","issac","ellie","bruce","martin","mia","gereon","denise","lucy","harang","tian","j","belzer","richel","risa","rick","jekiel","tanya","carol","lysander","ludwig","melvin","diana","clive","helena","eva","ron","leonor","sidney","tei","timothy","elfriede","tisha","carocho","ryan","watcher","emily","florian","kenneth","isabelle","renato","suki","greta","bastian","january","nicolas","chiara","veronica","giuseppe","luka","angie","endeka","odette"];
+function charLink(name) {
+  const i = ALL_CHARACTERS.indexOf(name);
+  return i < 0 ? "" : "https://cyphers.nexon.com/game/character/info/" + CHAR_SLUG[i];
+}
+
 // 캐릭터 썸네일 (출시 순 번호 = ALL_CHARACTERS 순서)
 function charImg(name) {
   const i = ALL_CHARACTERS.indexOf(name);
@@ -1045,10 +1059,10 @@ function renderRoleList() {
     const items = ROLES[r]
       .slice()
       .sort((a, b) => ALL_CHARACTERS.indexOf(a.base) - ALL_CHARACTERS.indexOf(b.base) || a.ult - b.ult)
-      .map(e => `<span class="rl-item">` +
+      .map(e => `<a class="rl-item" href="${charLink(e.base)}" target="_blank" rel="noopener noreferrer" title="${e.base} 이클립스 페이지 (새 창)">` +
         `<img src="${charImg(e.base)}" alt="" loading="lazy">` +
         `<span class="rl-ult u${e.ult}" title="${ultLabel(e.ult)} 궁극기">E</span>` +
-        `<span class="rl-name">${e.base}</span></span>`)
+        `<span class="rl-name">${e.base}</span></a>`)
       .join("");
     return `<div class="role-card${folded.includes(r) ? " collapsed" : ""}">` +
       `<div class="role-card-head" onclick="toggleRoleCard(this, '${r}')">${roleIcon(r)}<span class="role-card-name">${r}</span>` +
