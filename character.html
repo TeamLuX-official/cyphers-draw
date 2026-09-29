@@ -504,13 +504,13 @@
     .role-card-count { margin-left: auto; font-size: 11px; color: var(--text-dim); letter-spacing: 1px; }
     .rl-items {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(146px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
       gap: 6px;
     }
     .rl-item {
-      display: flex; align-items: center; gap: 7px;
+      display: flex; align-items: center; gap: 11px;
       background: #0d0a06; border: 1px solid var(--border);
-      border-radius: 6px; padding: 4px 8px 4px 4px;
+      border-radius: 6px; padding: 5px 12px 5px 5px;
       font-size: 13px; color: var(--text); min-width: 0;
     }
     .rl-item img {
@@ -554,8 +554,8 @@
       .btn-sub { margin-left: 6px; font-size: 11px; }
       #clock { font-size: 13px; gap: 7px; padding: 9px 12px; }
       .log-name { font-size: 16px; }
-      .rl-items { grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 5px; }
-      .rl-item { font-size: 12px; gap: 6px; padding: 4px 6px 4px 4px; }
+      .rl-items { grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 5px; }
+      .rl-item { font-size: 12px; gap: 9px; padding: 4px 9px 4px 4px; }
       .rl-item img { width: 30px; height: 30px; }
       .rl-ult { width: 17px; height: 17px; font-size: 10px; }
       .roles-note { gap: 12px; font-size: 11px; }
@@ -863,7 +863,7 @@ function resetRole() {
 function initModeUI() {
   const sel = document.getElementById("roleSelect");
   sel.innerHTML = Object.keys(ROLES).map(r =>
-    `<option value="${r}">${r} (${ROLES[r].length}종)</option>`).join("");
+    `<option value="${r}">${r} (${ROLES[r].length}개)</option>`).join("");
   let saved = "all";
   try { saved = localStorage.getItem(MODE_KEY) || "all"; } catch {}
   drawMode = ROLES[saved] ? saved : "all";
@@ -1019,7 +1019,7 @@ function renderRoleList() {
   box.innerHTML = Object.keys(ROLES).map(r => {
     const items = ROLES[r]
       .slice()
-      .sort((a, b) => a.base.localeCompare(b.base, "ko") || a.ult - b.ult)
+      .sort((a, b) => ALL_CHARACTERS.indexOf(a.base) - ALL_CHARACTERS.indexOf(b.base) || a.ult - b.ult)
       .map(e => `<span class="rl-item">` +
         `<img src="${charImg(e.base)}" alt="" loading="lazy">` +
         `<span class="rl-ult u${e.ult}" title="${ultLabel(e.ult)} 궁극기">E</span>` +
@@ -1027,7 +1027,7 @@ function renderRoleList() {
       .join("");
     return `<div class="role-card">` +
       `<div class="role-card-head">${roleIcon(r)}<span class="role-card-name">${r}</span>` +
-      `<span class="role-card-count">${ROLES[r].length}종</span></div>` +
+      `<span class="role-card-count">${ROLES[r].length}개</span></div>` +
       `<div class="rl-items">${items}</div>` +
     `</div>`;
   }).join("");
