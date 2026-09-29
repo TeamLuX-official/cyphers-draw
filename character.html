@@ -477,6 +477,40 @@
     }
     .party-note { font-size: 11px; color: var(--text-dim); text-align: center; margin-top: 10px; letter-spacing: 1px; }
 
+    /* ── 포지션별 캐릭터 목록 ── */
+    .roles-note {
+      text-align: center; font-size: 12px; color: var(--text-dim);
+      letter-spacing: 1px; margin-bottom: 14px; line-height: 1.5;
+    }
+    .role-card {
+      background: linear-gradient(180deg, var(--panel2), var(--panel));
+      border: 1px solid var(--border);
+      border-radius: 8px; padding: 14px; margin-bottom: 10px;
+    }
+    .role-card-head {
+      display: flex; align-items: center; gap: 8px;
+      padding-bottom: 10px; margin-bottom: 11px;
+      border-bottom: 1px solid var(--border);
+    }
+    .role-card-head .role-ic { height: 22px; margin-right: 0; }
+    .role-card-name {
+      font-family: var(--font-title); font-weight: 500;
+      font-size: 18px; color: var(--gold); letter-spacing: 1px;
+    }
+    .role-card-count { margin-left: auto; font-size: 11px; color: var(--text-dim); letter-spacing: 1px; }
+    .rl-items { display: flex; flex-wrap: wrap; gap: 6px; }
+    .rl-item {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: #0d0a06; border: 1px solid var(--border);
+      border-radius: 6px; padding: 5px 8px;
+      font-size: 13px; color: var(--text); white-space: nowrap;
+    }
+    .rl-ult {
+      font-size: 10px; font-weight: 700; color: var(--gold-dim);
+      background: #2e2410; border: 1px solid var(--border);
+      border-radius: 999px; padding: 1px 6px; letter-spacing: 1px;
+    }
+
     /* 푸터 */
     .footer {
       text-align: center; margin-top: 24px;
@@ -525,6 +559,7 @@
     <button class="tab-btn active" data-tab="main" onclick="switchTab('main')">🎲 개인 추첨</button>
     <button class="tab-btn" data-tab="party" onclick="switchTab('party')">👥 파티 추첨</button>
     <button class="tab-btn" data-tab="log" id="log-tab-btn" onclick="switchTab('log')">📋 기록 (0)</button>
+    <button class="tab-btn" data-tab="roles" onclick="switchTab('roles')">📖 포지션 목록</button>
   </div>
 
   <!-- 추첨 패널 -->
@@ -609,6 +644,12 @@
     </div>
     <div id="log-list"></div>
     <button id="reset-btn2" onclick="resetAll()">🗑 전체 기록 초기화</button>
+  </div>
+
+  <!-- 포지션별 캐릭터 목록 -->
+  <div class="panel" id="panel-roles">
+    <div class="roles-note">궁극기에 따라 역할군이 다른 캐릭터는 1st · 2nd가 각각 표시됩니다</div>
+    <div id="roleList"></div>
   </div>
 
 </div>
@@ -929,10 +970,30 @@ function switchTab(tab) {
   document.querySelectorAll(".tab-btn").forEach(btn => {
     btn.classList.toggle("active", btn.dataset.tab === tab);
   });
-  ["main", "party", "log"].forEach(t => {
+  ["main", "party", "log", "roles"].forEach(t => {
     document.getElementById("panel-" + t).classList.toggle("active", t === tab);
   });
   if (tab === "log") renderLog();
+  if (tab === "roles") renderRoleList();
+}
+
+// ── 포지션별 캐릭터 목록 ──────────────────────────
+function renderRoleList() {
+  const box = document.getElementById("roleList");
+  if (!box || box.dataset.done === "1") return; // 고정 데이터라 1회만 렌더
+  box.innerHTML = Object.keys(ROLES).map(r => {
+    const items = ROLES[r]
+      .slice()
+      .sort((a, b) => a.base.localeCompare(b.base, "ko") || a.ult - b.ult)
+      .map(e => `<span class="rl-item">${e.base}<span class="rl-ult">${ultLabel(e.ult)}</span></span>`)
+      .join("");
+    return `<div class="role-card">` +
+      `<div class="role-card-head">${roleIcon(r)}<span class="role-card-name">${r}</span>` +
+      `<span class="role-card-count">${ROLES[r].length}종</span></div>` +
+      `<div class="rl-items">${items}</div>` +
+    `</div>`;
+  }).join("");
+  box.dataset.done = "1";
 }
 
 // ── 파티 추첨 ─────────────────────────────────────
