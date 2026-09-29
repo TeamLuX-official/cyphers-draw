@@ -481,9 +481,11 @@
 
     /* ── 포지션별 캐릭터 목록 ── */
     .roles-note {
-      text-align: center; font-size: 12px; color: var(--text-dim);
-      letter-spacing: 1px; margin-bottom: 14px; line-height: 1.5;
+      display: flex; align-items: center; justify-content: center; gap: 18px;
+      font-size: 12px; color: var(--text-dim);
+      letter-spacing: 1px; margin-bottom: 14px;
     }
+    .lg-badge { display: inline-flex; align-items: center; gap: 6px; }
     .role-card {
       background: linear-gradient(180deg, var(--panel2), var(--panel));
       border: 1px solid var(--border);
@@ -500,18 +502,32 @@
       font-size: 18px; color: var(--gold); letter-spacing: 1px;
     }
     .role-card-count { margin-left: auto; font-size: 11px; color: var(--text-dim); letter-spacing: 1px; }
-    .rl-items { display: flex; flex-wrap: wrap; gap: 6px; }
+    .rl-items {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(146px, 1fr));
+      gap: 6px;
+    }
     .rl-item {
-      display: inline-flex; align-items: center; gap: 5px;
+      display: flex; align-items: center; gap: 7px;
       background: #0d0a06; border: 1px solid var(--border);
-      border-radius: 6px; padding: 5px 8px;
-      font-size: 13px; color: var(--text); white-space: nowrap;
+      border-radius: 6px; padding: 4px 8px 4px 4px;
+      font-size: 13px; color: var(--text); min-width: 0;
     }
+    .rl-item img {
+      width: 34px; height: 34px; flex-shrink: 0;
+      border-radius: 5px; background: #000; object-fit: cover;
+    }
+    .rl-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    /* 궁극기 표시 — 1st 연두, 2nd 보라 (인게임 표기와 동일) */
     .rl-ult {
-      font-size: 10px; font-weight: 700; color: var(--gold-dim);
-      background: #2e2410; border: 1px solid var(--border);
-      border-radius: 999px; padding: 1px 6px; letter-spacing: 1px;
+      width: 19px; height: 19px; flex-shrink: 0;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 800; font-family: var(--font-body);
+      line-height: 1;
     }
+    .rl-ult.u1 { background: #7ec850; color: #12240a; box-shadow: 0 0 7px rgba(126,200,80,.45); }
+    .rl-ult.u2 { background: #a855f7; color: #1b0a2b; box-shadow: 0 0 7px rgba(168,85,247,.45); }
 
     /* 푸터 */
     .footer {
@@ -538,6 +554,13 @@
       .btn-sub { margin-left: 6px; font-size: 11px; }
       #clock { font-size: 13px; gap: 7px; padding: 9px 12px; }
       .log-name { font-size: 16px; }
+      .rl-items { grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 5px; }
+      .rl-item { font-size: 12px; gap: 6px; padding: 4px 6px 4px 4px; }
+      .rl-item img { width: 30px; height: 30px; }
+      .rl-ult { width: 17px; height: 17px; font-size: 10px; }
+      .roles-note { gap: 12px; font-size: 11px; }
+      .role-card { padding: 12px 10px; }
+      .role-card-name { font-size: 16px; }
       .rchip { font-size: 11px; padding: 5px 4px; }
       .rchip .role-ic { height: 14px; margin-right: 3px; }
       /* 좁은 화면에서는 4열이면 글자가 잘려 3열로 */
@@ -650,7 +673,10 @@
 
   <!-- 포지션별 캐릭터 목록 -->
   <div class="panel" id="panel-roles">
-    <div class="roles-note">궁극기에 따라 역할군이 다른 캐릭터는 1st · 2nd가 각각 표시됩니다</div>
+    <div class="roles-note">
+      <span class="lg-badge"><span class="rl-ult u1">E</span> 1st 궁극기</span>
+      <span class="lg-badge"><span class="rl-ult u2">E</span> 2nd 궁극기</span>
+    </div>
     <div id="roleList"></div>
   </div>
 
@@ -698,6 +724,12 @@ function candidatesOf(filter) {
   if (filter === "all" || !ROLES[filter]) return ALL_CHARACTERS.map(c => ({ base: c, ult: 0 }));
   return ROLES[filter];
 }
+// 캐릭터 썸네일 (출시 순 번호 = ALL_CHARACTERS 순서)
+function charImg(name) {
+  const i = ALL_CHARACTERS.indexOf(name);
+  return i < 0 ? "" : "chars/" + String(i + 1).padStart(2, "0") + ".webp";
+}
+
 function roleMembers(role) {
   return new Set((ROLES[role] || []).map(e => e.base));
 }
@@ -988,7 +1020,10 @@ function renderRoleList() {
     const items = ROLES[r]
       .slice()
       .sort((a, b) => a.base.localeCompare(b.base, "ko") || a.ult - b.ult)
-      .map(e => `<span class="rl-item">${e.base}<span class="rl-ult">${ultLabel(e.ult)}</span></span>`)
+      .map(e => `<span class="rl-item">` +
+        `<img src="${charImg(e.base)}" alt="" loading="lazy">` +
+        `<span class="rl-ult u${e.ult}" title="${ultLabel(e.ult)} 궁극기">E</span>` +
+        `<span class="rl-name">${e.base}</span></span>`)
       .join("");
     return `<div class="role-card">` +
       `<div class="role-card-head">${roleIcon(r)}<span class="role-card-name">${r}</span>` +
