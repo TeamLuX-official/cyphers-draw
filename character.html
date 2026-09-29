@@ -94,8 +94,11 @@
 
     body {
       min-height: 100vh;
-      background: var(--bg);
+      background-color: var(--bg);
+      /* 페이지가 길어지면 그라데이션이 세로로 반복돼 이음새가 보이므로 반복 금지 */
       background-image: radial-gradient(ellipse at 50% -20%, #2e2312 0%, var(--bg) 60%);
+      background-repeat: no-repeat;
+      background-size: 100% 900px;
       font-family: var(--font-body);
       color: var(--text);
       display: flex;
@@ -495,7 +498,14 @@
       display: flex; align-items: center; gap: 8px;
       padding-bottom: 10px; margin-bottom: 11px;
       border-bottom: 1px solid var(--border);
+      cursor: pointer; user-select: none;
     }
+    .role-card-head:hover .role-card-name { filter: brightness(1.15); }
+    .role-fold {
+      font-size: 11px; color: var(--text-dim); width: 16px; text-align: center;
+    }
+    .role-card.collapsed .rl-items { display: none; }
+    .role-card.collapsed .role-card-head { padding-bottom: 0; margin-bottom: 0; border-bottom: none; }
     .role-card-head .role-ic { height: 22px; margin-right: 0; }
     .role-card-name {
       font-family: var(--font-title); font-weight: 500;
@@ -504,7 +514,7 @@
     .role-card-count { margin-left: auto; font-size: 11px; color: var(--text-dim); letter-spacing: 1px; }
     .rl-items {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 6px;
     }
     .rl-item {
@@ -554,7 +564,7 @@
       .btn-sub { margin-left: 6px; font-size: 11px; }
       #clock { font-size: 13px; gap: 7px; padding: 9px 12px; }
       .log-name { font-size: 16px; }
-      .rl-items { grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 5px; }
+      .rl-items { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; }
       .rl-item { font-size: 12px; gap: 9px; padding: 4px 9px 4px 4px; }
       .rl-item img { width: 30px; height: 30px; }
       .rl-ult { width: 17px; height: 17px; font-size: 10px; }
@@ -727,7 +737,7 @@ function candidatesOf(filter) {
 // 캐릭터 썸네일 (출시 순 번호 = ALL_CHARACTERS 순서)
 function charImg(name) {
   const i = ALL_CHARACTERS.indexOf(name);
-  return i < 0 ? "" : "chars/" + String(i + 1).padStart(2, "0") + ".webp";
+  return i < 0 ? "" : "chars/" + String(i + 1).padStart(2, "0") + ".webp?v=2";
 }
 
 function roleMembers(role) {
@@ -1013,9 +1023,24 @@ function switchTab(tab) {
 }
 
 // ── 포지션별 캐릭터 목록 ──────────────────────────
+// 역할군 카드 접기/펼치기 (접은 상태 저장)
+const ROLE_FOLD_KEY = "cyphers-role-fold";
+function foldedRoles() {
+  try { return JSON.parse(localStorage.getItem(ROLE_FOLD_KEY)) || []; } catch { return []; }
+}
+function toggleRoleCard(head, role) {
+  const card = head.parentElement;
+  const collapsed = card.classList.toggle("collapsed");
+  head.querySelector(".role-fold").textContent = collapsed ? "▼" : "▲";
+  const list = new Set(foldedRoles());
+  if (collapsed) list.add(role); else list.delete(role);
+  try { localStorage.setItem(ROLE_FOLD_KEY, JSON.stringify([...list])); } catch {}
+}
+
 function renderRoleList() {
   const box = document.getElementById("roleList");
   if (!box || box.dataset.done === "1") return; // 고정 데이터라 1회만 렌더
+  const folded = foldedRoles();
   box.innerHTML = Object.keys(ROLES).map(r => {
     const items = ROLES[r]
       .slice()
@@ -1025,9 +1050,9 @@ function renderRoleList() {
         `<span class="rl-ult u${e.ult}" title="${ultLabel(e.ult)} 궁극기">E</span>` +
         `<span class="rl-name">${e.base}</span></span>`)
       .join("");
-    return `<div class="role-card">` +
-      `<div class="role-card-head">${roleIcon(r)}<span class="role-card-name">${r}</span>` +
-      `<span class="role-card-count">${ROLES[r].length}개</span></div>` +
+    return `<div class="role-card${folded.includes(r) ? " collapsed" : ""}">` +
+      `<div class="role-card-head" onclick="toggleRoleCard(this, '${r}')">${roleIcon(r)}<span class="role-card-name">${r}</span>` +
+      `<span class="role-card-count">${ROLES[r].length}개</span><span class="role-fold">${folded.includes(r) ? "▼" : "▲"}</span></div>` +
       `<div class="rl-items">${items}</div>` +
     `</div>`;
   }).join("");
