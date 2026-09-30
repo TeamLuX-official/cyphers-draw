@@ -522,6 +522,38 @@
   .champion-box .name { font-family: var(--font-title); font-weight: 700; font-size: 21px; color: var(--gold); min-height: 25px; }
   .bracket-hint { text-align: center; font-size: 13px; color: var(--text-dim); margin-top: 6px; letter-spacing: 1px; }
 
+
+  /* ── 파트너 ── */
+  .partners {
+    text-align: center;
+    margin-top: 30px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+  }
+  .partners-label {
+    font-size: 10px; letter-spacing: 4px;
+    color: var(--text-dim); margin-bottom: 11px;
+  }
+  .partner-links { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  .partner-links a {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 8px 15px; border-radius: 999px;
+    border: 1px solid var(--border); background: #0d0a06;
+    color: var(--text-dim); font-size: 12px; text-decoration: none;
+    letter-spacing: .5px; transition: all .15s; white-space: nowrap;
+  }
+  .partner-links a:hover {
+    border-color: var(--border-hi); color: var(--gold);
+    background: #1a1209; transform: translateY(-1px);
+  }
+  .p-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .p-dot.chzzk { background: #00ffa3; box-shadow: 0 0 6px rgba(0,255,163,.6); }
+  .p-dot.cpgg  { background: #f5c451; box-shadow: 0 0 6px rgba(245,196,81,.6); }
+  .p-dot.x     { background: #e8dcc4; box-shadow: 0 0 6px rgba(232,220,196,.5); }
+  @media (max-width: 480px) {
+    .partner-links a { font-size: 11px; padding: 7px 12px; }
+  }
+
   /* ── 푸터 ── */
   .footer {
     text-align: center;
@@ -700,6 +732,14 @@
     <div class="bracket-hint">대진 추첨 후, 경기 승리 팀을 클릭하면 다음 라운드로 진출합니다.</div>
   </div>
 
+  <div class="partners">
+    <div class="partners-label">PARTNERS</div>
+    <div class="partner-links">
+      <a href="https://chzzk.naver.com/779de60981afd5a95a827962f796da2b" target="_blank" rel="noopener noreferrer"><span class="p-dot chzzk"></span>치지직 · 서누리</a>
+      <a href="https://cpgg.kr" target="_blank" rel="noopener noreferrer"><span class="p-dot cpgg"></span>cpgg.kr · 전적검색</a>
+      <a href="https://x.com/Antarius2602" target="_blank" rel="noopener noreferrer"><span class="p-dot x"></span>X · 사이퍼능력자협회</a>
+    </div>
+  </div>
   <div class="footer">
     Presented by <b>TeamLuX</b>
     <div class="footer-mail"><a href="mailto:lcf2025official@gmail.com">lcf2025official@gmail.com</a></div>
