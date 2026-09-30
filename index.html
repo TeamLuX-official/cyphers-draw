@@ -534,8 +534,9 @@
     font-size: 10px; letter-spacing: 4px;
     color: var(--text-dim); margin-bottom: 11px;
   }
-  .partner-links { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  .partner-links { display: flex; flex-wrap: wrap; gap: 8px; }
   .partner-links a {
+    flex: 1 1 auto;   /* 위쪽 패널들과 좌우 폭을 맞추기 위해 한 줄을 채움 */
     display: inline-flex; align-items: center; justify-content: center;
     padding: 9px 18px; border-radius: 6px;
     border: 1px solid var(--border); background: #0d0a06;
